@@ -1,0 +1,3 @@
+[atlas]
+library_dirs = /Users/mb312/archives/atlas/atlas-3.10.1-build-64-sse2-full-gcc4.8.2/lib2
+include_dirs = /Users/mb312/archives/atlas/atlas-3.10.1-build-64-sse2-full-gcc4.8.2/include/
