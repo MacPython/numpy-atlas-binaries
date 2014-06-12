@@ -8,6 +8,7 @@ from glob import glob
 import shutil
 from subprocess import check_call, CalledProcessError
 from functools import partial
+from itertools import cycle
 
 from waflib.Errors import ConfigurationError
 from wafutils import back_tick, FilePackageMaker as FPM, GitPackageMaker as GPM
@@ -24,13 +25,6 @@ ATLAS_PATTERN = '{0}/archives/atlas-3.10.1-build-{1}-sse2-full-gcc4.8.2/'
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
 
-python_install_rule = ('cd ${SRC[0].abspath()} && ${PYTHON} setup.py install '
-                       '--prefix=${bld.bldnode.abspath()}')
-mpkg_build_rule = ('cd ${SRC[0].abspath()} && bdist_mpkg setup.py bdist_mpkg')
-wheel_build_rule = ('cd ${SRC[0].abspath()} && '
-                    '${PYTHON} ${bld.srcnode.abspath()}/bdist_wheel.py')
-
-
 numpy_pkgs = {}
 for arch in ('32', '64'):
     def _write_setup_cfg(task):
@@ -38,15 +32,24 @@ for arch in ('32', '64'):
         write_pattern = """
 # site.cfg file
 [atlas]
-library_dirs = {0}lib
+library_dirs = {0}dylibs
 include_dirs = {0}include
 """.format(ATLAS_PATTERN)
         site_node.write(write_pattern.format(
             task.env.SRC_PREFIX,
             arch))
+    build_rule = ('cd ${SRC[0].abspath()} && '
+                  'LDSHARED="gcc ${PY_LD_FLAGS} -m%s" '
+                  'LDFLAGS="${PY_LD_FLAGS} -m%s" '
+                  'CC="gcc -m%s" '
+                  'CFLAGS="-m%s" '
+                  'FFLAGS="-m%s" '
+                  'FARCH="-m%s" '
+                  '${PYTHON} ${bld.srcnode.abspath()}/bdist_wheel.py'
+                  % ((arch,) * 6))
     numpy_pkgs[arch] = GPM('numpy_' + arch,
                            'v1.8.1',
-                           wheel_build_rule,
+                           build_rule,
                            patcher = _write_setup_cfg,
                            out_sdir = 'numpy_' + arch,
                            git_sdir = 'numpy')
@@ -80,33 +83,26 @@ def configure(ctx):
     ctx.env.BLD_PREFIX = bld_path
     ctx.env.SRC_PREFIX = ctx.srcnode.abspath()
     ctx.env.BLD_SRC = pjoin(bld_path, 'src')
+    ctx.env.PY_LD_FLAGS = "-Wall -undefined dynamic_lookup -bundle"
     ctx.find_program('git', var='GIT')
     # Update submodules in repo
     print('Running git submodule update, this might take a while')
     ctx.exec_command('git submodule update --init')
-    # Prepare environment variables for compilation
-    if not 'ARCH_FLAGS' in sys_env:
-        sys_env['ARCH_FLAGS'] = '-arch i386 -arch x86_64'
-    ctx.env.THIN_LDFLAGS = '{0} -L{1}/lib'.format(
-        sys_env['ARCH_FLAGS'],
-        bld_path)
-    ctx.env.THICK_LDFLAGS = ctx.env.THIN_LDFLAGS + ' -lpng -lbz2'
-    # For installing python modules
-    ctx.env.PYTHONPATH = _lib_path(bld_path)
-    sys_env['PYTHONPATH'] = ctx.env.PYTHONPATH
-    sys_env['PKG_CONFIG_PATH'] = '{0}/lib/pkgconfig'.format(bld_path)
+    # For compiling python modules
     sys_env['MACOSX_DEPLOYMENT_TARGET']='10.6'
-    sys_env['CPPFLAGS'] = ('-I{0}/include '
-                           '-I{0}/freetype2/include').format(bld_path)
-    sys_env['CFLAGS'] = sys_env['ARCH_FLAGS']
-    sys_env['LDFLAGS'] = ctx.env.THICK_LDFLAGS
+    # For using delocate
+    sys_env['PYTHONPATH'] = pjoin(ctx.env.SRC_PREFIX, 'delocate')
     ctx.env.env = sys_env
     # Check we have the right gcc
+    suffix = ('You probably need to install '
+              'archives/gfortran-4.8.2-Mavericks.dmg')
     if not ctx.env.CC[0] == GCC_PATH:
-        raise ConfigurationError('gcc path should be exactly {0} '
-                                 'but is {1}'.format(GCC_PATH, ctx.env.CC[0]))
+        raise ConfigurationError('gcc path should be exactly {0} but '
+                                 'is {1}. '.format(GCC_PATH, ctx.env.CC[0])
+                                 + suffix)
     if not '.'.join(ctx.env.CC_VERSION) == GCC_VER:
-        raise ConfigurationError('Need gcc version ' + GCC_VER)
+        raise ConfigurationError('Need gcc version {0}. {1}'.format(
+            GCC_VER, suffix))
 
 
 def build(ctx):
@@ -121,16 +117,27 @@ def build(ctx):
         # wheelhouse directory
         ctx.exec_command('mkdir -p {0}/wheelhouse'.format(bld_path))
     ctx.add_pre_fun(pre)
-    wheel_tasks = []
+    delocate_tasks = []
     for name, pkg in numpy_pkgs.items():
         py_task_name, dir_node = pkg.unpack_patch_build(ctx)
-        wheel_task = pkg.name + '.wheel.build'
+        delocate_task = pkg.name + '.delocate'
         ctx(
-            rule = wheel_build_rule,
+            rule = ('cd ${SRC[0].abspath()} && '
+                    'python ${bld.srcnode.abspath()}'
+                    '/delocate/scripts/delocate-wheel '
+                    'dist/*.whl'),
             source = [dir_node],
-            after = [py_task_name, 'wheel.build'],
-            name = wheel_task)
-        wheel_tasks.append(wheel_task)
+            after = [py_task_name],
+            name = delocate_task)
+        delocate_tasks.append(delocate_task)
+    ctx(
+        rule = ('cp src/numpy_32/dist/*.whl wheelhouse && '
+                'python ${bld.srcnode.abspath()}'
+                '/delocate/scripts/delocate-fuse '
+                'wheelhouse/numpy*.whl '
+                'src/numpy_64/dist/numpy*.whl'),
+        after = delocate_tasks,
+        name = 'fuse')
 
 
 def refresh_submodules(ctx):
