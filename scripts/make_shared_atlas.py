@@ -8,7 +8,8 @@ from __future__ import print_function
 
 import sys
 import os
-from os.path import join as pjoin, split as psplit, abspath, dirname
+from os.path import (join as pjoin, split as psplit, abspath, dirname,
+                     realpath, expanduser)
 from glob import glob
 
 from delocate.tools import get_archs, back_tick
@@ -19,6 +20,7 @@ def main():
         atlas_root = sys.argv[1]
     except IndexError:
         raise RuntimeError("Need ATLAS directory as input")
+    atlas_root = realpath(expanduser(atlas_root))
     static_libdir = pjoin(atlas_root, 'lib')
     static_libs = glob(pjoin(static_libdir, '*.a'))
     if len(static_libs) == 0:
@@ -50,11 +52,12 @@ def main():
     ):
         static_in = pjoin(static_libdir, 'lib{0}.a'.format(name))
         dyn_out = pjoin(dyn_libdir, 'lib{0}.dylib'.format(name))
-        cmd = (['gcc', m_flag, '-shared', '-o', dyn_out,
-                '-L' + dyn_libdir] +
-               ['-l' + name for name in depends] +
-               ['-all_load', static_in,
-                '-install_name', dyn_out])
+        atlas_deps = [pjoin(dyn_libdir, 'lib{0}.dylib'.format(name))
+                      for name in depends if name != 'gfortran']
+        cmd = (['gcc', m_flag, '-shared', '-o', dyn_out] +
+               atlas_deps +
+               (['-lgfortran'] if 'gfortran' in depends else []) +
+               ['-all_load', static_in, '-install_name', dyn_out])
         back_tick(cmd)
 
 
