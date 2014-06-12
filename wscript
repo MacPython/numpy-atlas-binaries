@@ -2,7 +2,8 @@
 # vim: ft=python
 from __future__ import division, print_function, absolute_import
 import os
-from os.path import join as pjoin, split as psplit, isfile, dirname, pathsep
+from os.path import (join as pjoin, split as psplit, isfile, dirname, pathsep,
+                     expanduser)
 import sys
 from glob import glob
 import shutil
@@ -20,24 +21,27 @@ GCC_VER = '4.8.2'
 GCC_PATH = '/usr/local/gfortran/bin/gcc'
 MACPIES_ROOT = '/Library/Frameworks/Python.framework/Versions'
 # Source lib, width of architecture
-ATLAS_PATTERN = '{0}/archives/atlas-3.10.1-build-{1}-sse2-full-gcc4.8.2/'
+ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2/'
 
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
 
-numpy_pkgs = {}
-for arch in ('32', '64'):
-    def _write_setup_cfg(task):
-        site_node = task.inputs[0].make_node('site.cfg')
-        write_pattern = """
+def _patcher(arch):
+    atlas_pattern = '{0}/' + ATLAS_SDIR_PATTERN.format(arch)
+    site_cfg_pattern = """
 # site.cfg file
 [atlas]
 library_dirs = {0}dylibs
 include_dirs = {0}include
-""".format(ATLAS_PATTERN)
-        site_node.write(write_pattern.format(
-            task.env.SRC_PREFIX,
-            arch))
+""".format(atlas_pattern)
+    def _write_cfg(task):
+        site_node = task.inputs[0].make_node('site.cfg')
+        site_node.write(site_cfg_pattern.format(task.env.SRC_PREFIX))
+    return _write_cfg
+
+numpy_pkgs = {}
+scipy_pkgs = {}
+for arch in ('32', '64'):
     build_rule = ('cd ${SRC[0].abspath()} && '
                   'LDSHARED="gcc ${PY_LD_FLAGS} -m%s" '
                   'LDFLAGS="${PY_LD_FLAGS} -m%s" '
@@ -50,9 +54,15 @@ include_dirs = {0}include
     numpy_pkgs[arch] = GPM('numpy_' + arch,
                            'v1.8.1',
                            build_rule,
-                           patcher = _write_setup_cfg,
+                           patcher = _patcher(arch),
                            out_sdir = 'numpy_' + arch,
                            git_sdir = 'numpy')
+    scipy_pkgs[arch] = GPM('scipy_' + arch,
+                           'v0.14.0',
+                           build_rule,
+                           patcher = _patcher(arch),
+                           out_sdir = 'scipy_' + arch,
+                           git_sdir = 'scipy')
 
 
 def options(opt):
@@ -118,26 +128,29 @@ def build(ctx):
         ctx.exec_command('mkdir -p {0}/wheelhouse'.format(bld_path))
     ctx.add_pre_fun(pre)
     delocate_tasks = []
-    for name, pkg in numpy_pkgs.items():
-        py_task_name, dir_node = pkg.unpack_patch_build(ctx)
-        delocate_task = pkg.name + '.delocate'
+    for pkg_name, pkg_dict in (('numpy', numpy_pkgs),
+                               ('scipy', scipy_pkgs)):
+        for name, pkg in pkg_dict.items():
+            py_task_name, dir_node = pkg.unpack_patch_build(ctx)
+            delocate_task = pkg.name + '.delocate'
+            ctx(
+                rule = ('cd ${SRC[0].abspath()} && '
+                        'python ${bld.srcnode.abspath()}'
+                        '/delocate/scripts/delocate-wheel '
+                        'dist/*.whl'),
+                source = [dir_node],
+                after = [py_task_name],
+                name = delocate_task)
+            delocate_tasks.append(delocate_task)
         ctx(
-            rule = ('cd ${SRC[0].abspath()} && '
+            rule = ('cp src/%s_32/dist/*.whl wheelhouse && '
                     'python ${bld.srcnode.abspath()}'
-                    '/delocate/scripts/delocate-wheel '
-                    'dist/*.whl'),
-            source = [dir_node],
-            after = [py_task_name],
-            name = delocate_task)
-        delocate_tasks.append(delocate_task)
-    ctx(
-        rule = ('cp src/numpy_32/dist/*.whl wheelhouse && '
-                'python ${bld.srcnode.abspath()}'
-                '/delocate/scripts/delocate-fuse '
-                'wheelhouse/numpy*.whl '
-                'src/numpy_64/dist/numpy*.whl'),
-        after = delocate_tasks,
-        name = 'fuse')
+                    '/delocate/scripts/delocate-fuse '
+                    'wheelhouse/%s*.whl '
+                    'src/%s_64/dist/%s*.whl' %
+                    ((pkg_name,) * 4)),
+            after = delocate_tasks,
+            name = 'fuse')
 
 
 def refresh_submodules(ctx):
@@ -155,3 +168,23 @@ def refresh_submodules(ctx):
         except CalledProcessError:
             call(fetch_cmd)
             call(checkout_cmd)
+
+
+def cp_wheels(ctx):
+    # Get build time configuration
+    from waflib.ConfigSet import ConfigSet
+    env = ConfigSet()
+    env_cache = pjoin('build', 'c4che', '_cache.py')
+    if not isfile(env_cache):
+        ctx.fatal('Run `configure` and `build` before `cp_wheels`')
+    env.load(env_cache)
+    # Check if any wheels have been built
+    build_path = env.BLD_PREFIX
+    globber = pjoin(build_path, 'wheelhouse', '*whl')
+    print(globber)
+    wheels = glob(globber)
+    if len(wheels) == 0:
+        ctx.fatal("No wheels found with " + globber)
+    wheel_out = expanduser('~/wheelhouse-atlas')
+    for wheel in wheels:
+        shutil.copy2(wheel, wheel_out)
