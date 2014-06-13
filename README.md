@@ -94,7 +94,7 @@ it's impractical to farm out to virtual machines because:
   ATLAS parlance) takes about 6 hours even on a fast machine.
 
 I've therefore built ATLAS on my laptop with CPU throttling turned off as far
-as I could, and not other significant processes running.
+as I could, and no other significant processes running.
 
 I build 32 and 64 bit ATLAS binaries separately.  The resulting built ATLAS
 libraries are in [the repo archives
@@ -120,8 +120,8 @@ This is just a sketch.  The full build process is in the waf
     - make `site.cfg` to point numpy / scipy at ATLAS binaries with matching
       architecture
     - Compile with crafted compile / link flags to remove default `arch` flags
-      and add specific archicture flags.  This gives an architecture-specific
-      wheel
+      and add specific architecture flags.  This gives an
+      architecture-specific wheel
     - use `delocate` and `delocate-wheel` to copy required dynamic libraries
       into the built wheel
 - Fuse the architecture specific wheels into one combined architecture wheel
