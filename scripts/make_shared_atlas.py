@@ -1,8 +1,13 @@
 """ Make shared ATLAS libraries from static libs
 
-Assumes a directory into which ATLAS has been 'install'ed
+Assumes an INPUT directory into which ATLAS has been 'install'ed
 
 This directory will have a `lib` and `include` directory.
+
+Makes new directory with given name with:
+
+* Copy of <INPUT>/include with include files
+* <INPUT>/lib with dynamic libraries corresponding to .a files.
 """
 from __future__ import print_function
 
@@ -10,6 +15,7 @@ import sys
 import os
 from os.path import (join as pjoin, split as psplit, abspath, dirname,
                      realpath, expanduser)
+import shutil
 from glob import glob
 
 from delocate.tools import get_archs, back_tick
@@ -17,11 +23,15 @@ from delocate.tools import get_archs, back_tick
 
 def main():
     try:
-        atlas_root = sys.argv[1]
+        static_root = sys.argv[1]
     except IndexError:
-        raise RuntimeError("Need ATLAS directory as input")
-    atlas_root = realpath(expanduser(atlas_root))
-    static_libdir = pjoin(atlas_root, 'lib')
+        raise RuntimeError("Need ATLAS input directory")
+    try:
+        dynamic_root = sys.argv[2]
+    except IndexError:
+        raise RuntimeError("Need ATLAS output directory")
+    static_root = realpath(expanduser(static_root))
+    static_libdir = pjoin(static_root, 'lib')
     static_libs = glob(pjoin(static_libdir, '*.a'))
     if len(static_libs) == 0:
         raise RuntimeError("No static libs in " + static_libdir)
@@ -36,8 +46,11 @@ def main():
     arch = archs.pop()
     if arch not in ('i386', 'x86_64'):
         raise ValueError("Only know i386, x86_64, not " + arch)
+    dynamic_root = realpath(expanduser(dynamic_root))
+    shutil.copytree(pjoin(static_root, 'include'),
+                    pjoin(dynamic_root, 'include'))
     m_flag = '-m32' if arch == 'i386' else '-m64'
-    dyn_libdir = pjoin(atlas_root, 'dylibs')
+    dyn_libdir = pjoin(dynamic_root, 'lib')
     try:
         os.mkdir(dyn_libdir)
     except OSError:
