@@ -1,0 +1,21 @@
+language:
+  - objective-c
+
+env:
+  matrix:
+    - TEST='macpython' PY_VERSION=2.7.7
+    - TEST='macpython' PY_VERSION=3.3.5
+    - TEST='macpython' PY_VERSION=3.4.1
+
+install:
+  - set -vx  # echo commands
+  - source ./testing/install.sh
+
+script:
+  - echo $PWD
+  - mkdir tmp_test_dir
+  - cd tmp_test_dir
+  - source ../testing/test.sh
+
+after_failure:
+  - echo $PWD
