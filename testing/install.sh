@@ -71,10 +71,11 @@ if [ "$TEST" == "macpython" ] ; then
     install_mac_python $PY_VERSION
     PY=${PY_VERSION:0:3}
     get_pip $PYTHON
-    export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY -f $NIPY_WHEELHOUSE"
+    export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
     install_gfortran
     $PIP install virtualenv
-    $PIP install cython # for numpy / scipy build
+    # for numpy / scipy build
+    $PIP install --find-links $NIPY_WHEELHOUSE cython
     build_wheels
     $PIP install $WHEELHOUSE/numpy*.whl
     $PIP install $WHEELHOUSE/scipy*.whl
