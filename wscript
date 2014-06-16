@@ -20,55 +20,25 @@ GCC_VER = '4.8.2'
 GCC_PATH = '/usr/local/gfortran/bin/gcc'
 MACPIES_ROOT = '/Library/Frameworks/Python.framework/Versions'
 # Source lib, width of architecture
-ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2/'
+ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2'
+VENV_SDIR = 'venv'
+PY_SP_NP_DEPENDS = {2: 'v1.5.1', 3: 'v1.7.1'}
+PKG2TAG = dict(numpy = 'v1.8.1',
+               scipy = 'v0.14.0')
 
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
 
-def _patcher(arch):
-    atlas_pattern = '{0}/' + ATLAS_SDIR_PATTERN.format(arch)
-    site_cfg_pattern = """
-# site.cfg file
-[atlas]
-library_dirs = {0}dylibs
-include_dirs = {0}include
-""".format(atlas_pattern)
-    def _write_cfg(task):
-        site_node = task.inputs[0].make_node('site.cfg')
-        site_node.write(site_cfg_pattern.format(task.env.SRC_PREFIX))
-    return _write_cfg
-
-numpy_pkgs = {}
-scipy_pkgs = {}
-for arch in ('32', '64'):
-    build_rule = ('cd ${SRC[0].abspath()} && '
-                  'LDSHARED="gcc ${PY_LD_FLAGS} -m%s" '
-                  'LDFLAGS="${PY_LD_FLAGS} -m%s" '
-                  'CC="gcc -m%s" '
-                  'CFLAGS="-m%s" '
-                  'FFLAGS="-m%s" '
-                  'FARCH="-m%s" '
-                  '${PYTHON} ${bld.srcnode.abspath()}/bdist_wheel.py'
-                  % ((arch,) * 6))
-    numpy_pkgs[arch] = GPM('numpy_' + arch,
-                           'v1.8.1',
-                           build_rule,
-                           patcher = _patcher(arch),
-                           out_sdir = 'numpy_' + arch,
-                           git_sdir = 'numpy')
-    scipy_pkgs[arch] = GPM('scipy_' + arch,
-                           'v0.14.0',
-                           build_rule,
-                           patcher = _patcher(arch),
-                           out_sdir = 'scipy_' + arch,
-                           git_sdir = 'scipy')
-
 
 def options(opt):
     opt.load('compiler_c')
+    opt.load('python')
     # Output for wheel writing
     opt.add_option('-w', '--wheel-dir', action='store',
                    help='directory to write built mpkg')
+    opt.add_option('--packages', action='store',
+                   help='comma separated list of package to build from '
+                   'numpy, scipy; e.g "numpy", "numpy,scipy"')
     opt.add_option('--clobber', action='store_true', default=False,
                    help='whether to overwrite existing output wheels')
 
@@ -82,10 +52,18 @@ def _lib_path(start_path):
 def configure(ctx):
     sys_env = dict(os.environ)
     bld_path = ctx.bldnode.abspath()
-    # Add build path and expected gcc path to PATH
-    sys_env['PATH'] = pathsep.join(('{0}/bin'.format(bld_path),
-                                    dirname(GCC_PATH),
-                                    sys_env['PATH']))
+    src_path = ctx.srcnode.abspath()
+    # Add
+    # * build path
+    # * SRC scripts path
+    # * expected gcc path
+    # * output virtualenv path
+    sys_env['PATH'] = pathsep.join((
+        '{0}/bin'.format(bld_path),
+        '{0}/bin'.format(src_path),
+        dirname(GCC_PATH),
+        '{0}/{1}/bin'.format(bld_path, VENV_SDIR),
+        sys_env['PATH']))
     os.environ['PATH'] = sys_env['PATH']
     ctx.load('compiler_c')
     # We need to record the build directory for use by non-build functions
@@ -94,15 +72,14 @@ def configure(ctx):
     ctx.env.BLD_SRC = pjoin(bld_path, 'src')
     ctx.env.PY_LD_FLAGS = "-Wall -undefined dynamic_lookup -bundle"
     ctx.find_program('git', var='GIT')
+    ctx.find_program('virtualenv', var='VIRTUALENV')
     # Update submodules in repo
     print('Running git submodule update, this might take a while')
     ctx.exec_command('git submodule update --init')
     # For compiling python modules
     sys_env['MACOSX_DEPLOYMENT_TARGET']='10.6'
-    # For using delocate
-    sys_env['PYTHONPATH'] = pjoin(ctx.env.SRC_PREFIX, 'delocate')
-    ctx.env.env = sys_env
     # Check we have the right gcc
+    ctx.env.env = sys_env
     suffix = ('You probably need to install '
               'archives/gfortran-4.8.2-Mavericks.dmg')
     if not ctx.env.CC[0] == GCC_PATH:
@@ -112,26 +89,89 @@ def configure(ctx):
     if not '.'.join(ctx.env.CC_VERSION) == GCC_VER:
         raise ConfigurationError('Need gcc version {0}. {1}'.format(
             GCC_VER, suffix))
+    # Set numpy dependings
+    ctx.env.NP_SP_DEPENDS = PY_SP_NP_DEPENDS[sys.version_info[0]]
+    # Input Python version
+    ctx.env.PYTHON_EXE=sys.executable
+    # packages to compile
+    packages = ctx.options.packages
+    if packages is None or packages == '':
+        packages = ['numpy', 'scipy']
+    else:
+        packages = [pkg.strip() for pkg in packages.split(',') if pkg.strip()]
+    ctx.env.PACKAGES = packages
 
 
 def build(ctx):
     bld_node = ctx.bldnode
     bld_path = bld_node.abspath()
+    packages = ctx.env.PACKAGES
     # We need the src directory before we start
     def pre(ctx):
         # src directory for code tree copies
         ctx.exec_command('mkdir -p {0}/src'.format(bld_path))
-        # python site-packages directory for python installs
-        ctx.exec_command('mkdir -p {0}'.format(_lib_path(bld_path)))
         # wheelhouse directory
         ctx.exec_command('mkdir -p {0}/wheelhouse'.format(bld_path))
     ctx.add_pre_fun(pre)
-    delocate_tasks = []
-    for pkg_name, pkg_dict in (('numpy', numpy_pkgs),
-                               ('scipy', scipy_pkgs)):
-        for name, pkg in pkg_dict.items():
+    # Set up virtualenv
+    ctx(
+        rule = '${VIRTUALENV} --python=${PYTHON_EXE} ${TGT}',
+        target = VENV_SDIR,
+        name = 'mkvirtualenv')
+    ctx(
+        rule = 'pip install wheel',
+        after = 'mkvirtualenv',
+        name = 'install-wheel')
+    # Install delocate into virtualenv
+    ctx(
+        rule = 'cd ${SRC_PREFIX}/delocate && python setup.py install',
+        after = 'install-wheel',
+        name = 'delocate',
+    )
+    # Build ATLAS libs
+    atlas_libs = {}
+    for arch in ('32', '64'):
+        atlas_dir_in = pjoin(
+            ctx.env.SRC_PREFIX,
+            ATLAS_SDIR_PATTERN.format(arch))
+        atlas_dir_out = pjoin(bld_path, 'src', 'atlas_' + arch)
+        name = 'atlas-{0}-lib'.format(arch)
+        ctx(
+            rule = 'make_shared_atlas.py {0} {1}'.format(atlas_dir_in,
+                                                         atlas_dir_out),
+            after = 'delocate',
+            name = name)
+        atlas_libs[arch] = dict(path=atlas_dir_out, name=name)
+    # Prepare for scipy build
+    if 'scipy' in packages:
+        np_sp_pkg = GPM('numpy',
+                        ctx.env.NP_SP_DEPENDS,
+                        'cd ${SRC[0].abspath()} && python setup.py install',
+                        after = 'mkvirtualenv')
+        inst_numpy, np_dir_node = np_sp_pkg.unpack_patch_build(ctx)
+    for pkg_name in packages:
+        git_tag = PKG2TAG[pkg_name]
+        add_after = [inst_numpy] if pkg_name == 'scipy' else []
+        delocate_tasks = []
+        for arch in ('32', '64'):
+            build_rule = ('cd ${SRC[0].abspath()} && '
+                          'ATLAS="%s" '
+                          'LDSHARED="gcc ${PY_LD_FLAGS} -m%s" '
+                          'LDFLAGS="${PY_LD_FLAGS} -m%s" '
+                          'CC="gcc -m%s" '
+                          'CFLAGS="-m%s" '
+                          'FFLAGS="-m%s" '
+                          'FARCH="-m%s" '
+                          'python ${bld.srcnode.abspath()}/bdist_wheel.py'
+                          % tuple([atlas_libs[arch]['path']] + [arch] * 6))
+            pkg = GPM(pkg_name + '_' + arch,
+                      git_tag,
+                      build_rule,
+                      after = [atlas_libs[arch]['name']] + add_after,
+                      out_sdir = pkg_name + '_' + arch,
+                      git_sdir = pkg_name)
             py_task_name, dir_node = pkg.unpack_patch_build(ctx)
-            delocate_task = pkg.name + '.delocate'
+            delocate_task = pkg_name + '.delocate'
             ctx(
                 rule = ('cd ${SRC[0].abspath()} && '
                         'python ${bld.srcnode.abspath()}'
@@ -147,7 +187,7 @@ def build(ctx):
                     '/delocate/scripts/delocate-fuse '
                     'wheelhouse/%s*.whl '
                     'src/%s_64/dist/%s*.whl' %
-                    ((pkg_name,) * 4)),
+                    tuple([pkg_name] * 4)),
             after = delocate_tasks,
             name = 'fuse')
 
@@ -167,7 +207,6 @@ def refresh_submodules(ctx):
         except CalledProcessError:
             call(fetch_cmd)
             call(checkout_cmd)
-
 
 
 def cp_wheels(ctx):
