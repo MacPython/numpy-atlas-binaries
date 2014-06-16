@@ -71,6 +71,7 @@ if [ "$TEST" == "macpython" ] ; then
     get_pip $PYTHON
     export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
     install_gfortran
+    $PIP install virtualenv
     build_wheels
     $PIP install $WHEELHOUSE/numpy*.whl
     $PIP install $WHEELHOUSE/scipy*.whl
