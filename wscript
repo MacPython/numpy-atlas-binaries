@@ -2,14 +2,13 @@
 # vim: ft=python
 from __future__ import division, print_function, absolute_import
 import os
-from os.path import (join as pjoin, split as psplit, isfile, dirname, pathsep,
-                     expanduser)
+from os.path import (join as pjoin, isfile, dirname, pathsep, expanduser,
+                     exists, basename)
 import sys
 from glob import glob
 import shutil
 from subprocess import check_call, CalledProcessError
 from functools import partial
-from itertools import cycle
 
 from waflib.Errors import ConfigurationError
 from wafutils import back_tick, FilePackageMaker as FPM, GitPackageMaker as GPM
@@ -67,11 +66,11 @@ for arch in ('32', '64'):
 
 def options(opt):
     opt.load('compiler_c')
-    # Output for mpkg writing
-    opt.add_option('--mpkg-outpath', action='store',
+    # Output for wheel writing
+    opt.add_option('-w', '--wheel-dir', action='store',
                    help='directory to write built mpkg')
-    opt.add_option('--mpkg-clobber', action='store_true', default=False,
-                   help='whether to overwrite existing output mpkg')
+    opt.add_option('--clobber', action='store_true', default=False,
+                   help='whether to overwrite existing output wheels')
 
 
 def _lib_path(start_path):
@@ -170,7 +169,13 @@ def refresh_submodules(ctx):
             call(checkout_cmd)
 
 
+
 def cp_wheels(ctx):
+    # Wheel out directory
+    wheel_dir = ctx.options.wheel_dir
+    if wheel_dir is None:
+        ctx.fatal('Need to set --wheel-dir to write mpkgs')
+    wheel_dir = expanduser(wheel_dir)
     # Get build time configuration
     from waflib.ConfigSet import ConfigSet
     env = ConfigSet()
@@ -181,10 +186,17 @@ def cp_wheels(ctx):
     # Check if any wheels have been built
     build_path = env.BLD_PREFIX
     globber = pjoin(build_path, 'wheelhouse', '*whl')
-    print(globber)
     wheels = glob(globber)
     if len(wheels) == 0:
         ctx.fatal("No wheels found with " + globber)
-    wheel_out = expanduser('~/wheelhouse-atlas')
+    if not exists(wheel_dir):
+        os.makedirs(wheel_dir)
+    if len(wheels) == 0:
+        print('No wheels to copy')
     for wheel in wheels:
-        shutil.copy2(wheel, wheel_out)
+        out_wheel = pjoin(wheel_dir, basename(wheel))
+        if exists(out_wheel):
+            if not ctx.options.clobber:
+                ctx.fatal('{0} exists, --clobber not set'.format(out_wheel))
+        shutil.copyfile(wheel, out_wheel)
+        print('Copied', wheel)
