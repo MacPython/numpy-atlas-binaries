@@ -25,6 +25,7 @@ VENV_SDIR = 'venv'
 PY_SP_NP_DEPENDS = {2: 'v1.5.1', 3: 'v1.7.1'}
 PKG2TAG = dict(numpy = 'v1.8.1',
                scipy = 'v0.14.0')
+NIPY_WHEELHOUSE = 'https://nipy.bic.berkeley.edu/scipy_installers'
 
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
@@ -128,6 +129,16 @@ def build(ctx):
         after = 'install-wheel',
         name = 'delocate',
     )
+    # And Cython, tempita.
+    ctx(
+        rule = 'pip install -f {0} cython'.format(NIPY_WHEELHOUSE),
+        after = 'mkvirtualenv',
+        name = 'install-cython')
+    ctx(
+        rule = 'pip install -f {0} tempita'.format(NIPY_WHEELHOUSE),
+        after = 'mkvirtualenv',
+        name = 'install-tempita')
+    after_build_ready = ['install-cython', 'install-tempita']
     # Build ATLAS libs
     atlas_libs = {}
     for arch in ('32', '64'):
@@ -147,11 +158,11 @@ def build(ctx):
         np_sp_pkg = GPM('numpy',
                         ctx.env.NP_SP_DEPENDS,
                         'cd ${SRC[0].abspath()} && python setup.py install',
-                        after = 'mkvirtualenv')
+                        after = after_build_ready)
         inst_numpy, np_dir_node = np_sp_pkg.unpack_patch_build(ctx)
     for pkg_name in packages:
         git_tag = PKG2TAG[pkg_name]
-        add_after = [inst_numpy] if pkg_name == 'scipy' else []
+        add_after = [inst_numpy] if pkg_name == 'scipy' else after_build_ready
         delocate_tasks = []
         for arch in ('32', '64'):
             build_rule = ('cd ${SRC[0].abspath()} && '
