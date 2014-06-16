@@ -116,9 +116,13 @@ This is just a sketch.  The full build process is in the waf
 `wscript` in the repository.
 
 - for each architecture (i386, x86\_64)
+    - copy ATLAS directory for arch into build directory and make dynamic
+      ATLAS libs
     - copy numpy / scipy sources to new directory
-    - make `site.cfg` to point numpy / scipy at ATLAS binaries with matching
-      architecture
+    - if building scipy, build numpy with given back-compatibility tag to
+      build against
+    - use ATLAS environment variable to point numpy / scipy at ATLAS binaries
+      with matching architecture
     - Compile with crafted compile / link flags to remove default `arch` flags
       and add specific architecture flags.  This gives an
       architecture-specific wheel
@@ -138,16 +142,6 @@ wheels into a directory `~/wheelhouse-atlas`.
 
 #### To do
 
-- Put the process of building the dynamic ATLAS libraries into `wscript`.  The
-  built libraries depend on the exact path of repo so it doesn't make sense
-  (as now) to ship the libs in the repo.
-- Allow an output directory option for `cp_wheel` to copy into some
-  directory other than `~/wheelhouse-atlas`.
-- Install numpy and maybe `delocate` into a virtualenv while building.  At the
-  moment, the scipy build depends on another installed version on numpy being
-  present in the environment. That is, in the example above, the `py27`
-  virtualenv needs numpy installed in it in order for the scipy build to work.
 - Maybe iterate over Python.org versions in the build process rather than
   doing it by hand on the command line, as above.
-- Consider adding `.travis.yml` to install gcc / gfortran and Python.org
-  Pythons, then building and uploading the build products somewhere.
+- Work out some way of uploading the build products from the travis-ci builders.
