@@ -50,6 +50,7 @@ function install_mac_python {
     require_success "Failed to install Python.org Python $PY_VERSION"
     M_dot_m=${PY_VERSION:0:3}
     export PYTHON=/usr/local/bin/python$M_dot_m
+    export PATH=$MACPYTHON_PREFIX/$M_dot_m/bin:$PATH
 }
 
 
