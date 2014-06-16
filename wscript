@@ -119,6 +119,8 @@ def build(ctx):
         rule = '${VIRTUALENV} --python=${PYTHON_EXE} ${TGT}',
         target = VENV_SDIR,
         name = 'mkvirtualenv')
+    # Install various packages into virtualenv.  Install seqeuentially trying
+    # to avoid puzzling errors in pip installs on travis
     ctx(
         rule = 'pip install wheel',
         after = 'mkvirtualenv',
@@ -132,13 +134,13 @@ def build(ctx):
     # And Cython, tempita.
     ctx(
         rule = 'pip install -f {0} cython'.format(NIPY_WHEELHOUSE),
-        after = 'mkvirtualenv',
+        after = 'delocate',
         name = 'install-cython')
     ctx(
         rule = 'pip install -f {0} tempita'.format(NIPY_WHEELHOUSE),
-        after = 'mkvirtualenv',
+        after = 'install-cython',
         name = 'install-tempita')
-    after_build_ready = ['install-cython', 'install-tempita']
+    after_build_ready = ['install-tempita']
     # Build ATLAS libs
     atlas_libs = {}
     for arch in ('32', '64'):
