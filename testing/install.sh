@@ -12,7 +12,6 @@ GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
 MACPYTHON_PREFIX=/Library/Frameworks/Python.framework/Versions
 GF_ARCHIVE=archives/gfortran-4.8.2-Mavericks.dmg
 GF_PKG_SDIR=gfortran-4.8.2-Mavericks/gfortran.pkg
-WHEELHOUSE=build/wheelhouse
 NIPY_WHEELHOUSE=https://nipy.bic.berkeley.edu/scipy_installers
 
 function require_success {
@@ -73,12 +72,12 @@ if [ "$TEST" == "macpython" ] ; then
     get_pip $PYTHON
     export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
     install_gfortran
-    $PIP install virtualenv
+    $PIP install -q virtualenv
     # for numpy / scipy build
-    $PIP install --find-links $NIPY_WHEELHOUSE cython
+    $PIP install -q --find-links $NIPY_WHEELHOUSE cython tempita
     build_wheels
-    $PIP install $WHEELHOUSE/numpy*.whl
-    $PIP install $WHEELHOUSE/scipy*.whl
+    # Get ready for tests by using built virtualenv
+    export PATH=$PWD/build/venv/bin:$PATH
 
 else
     echo "Unknown test setting ($TEST)"
