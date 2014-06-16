@@ -13,6 +13,7 @@ MACPYTHON_PREFIX=/Library/Frameworks/Python.framework/Versions
 GF_ARCHIVE=archives/gfortran-4.8.2-Mavericks.dmg
 GF_PKG_SDIR=gfortran-4.8.2-Mavericks/gfortran.pkg
 WHEELHOUSE=build/wheelhouse
+NIPY_WHEELHOUSE=https://nipy.bic.berkeley.edu/scipy_installers
 
 function require_success {
     STATUS=$?
@@ -70,9 +71,10 @@ if [ "$TEST" == "macpython" ] ; then
     install_mac_python $PY_VERSION
     PY=${PY_VERSION:0:3}
     get_pip $PYTHON
-    export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
+    export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY -f $NIPY_WHEELHOUSE"
     install_gfortran
     $PIP install virtualenv
+    $PIP install cython # for numpy / scipy build
     build_wheels
     $PIP install $WHEELHOUSE/numpy*.whl
     $PIP install $WHEELHOUSE/scipy*.whl
