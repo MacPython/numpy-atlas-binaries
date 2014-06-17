@@ -225,7 +225,7 @@ def cp_wheels(ctx):
     # Wheel out directory
     wheel_dir = ctx.options.wheel_dir
     if wheel_dir is None:
-        ctx.fatal('Need to set --wheel-dir to write mpkgs')
+        ctx.fatal('Need to set --wheel-dir to copy wheels')
     wheel_dir = expanduser(wheel_dir)
     # Get build time configuration
     from waflib.ConfigSet import ConfigSet
