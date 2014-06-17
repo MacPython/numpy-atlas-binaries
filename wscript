@@ -56,12 +56,10 @@ def configure(ctx):
     bld_path = ctx.bldnode.abspath()
     src_path = ctx.srcnode.abspath()
     # Add
-    # * build path
     # * SRC scripts path
     # * expected gcc path
     # * output virtualenv path
     sys_env['PATH'] = pathsep.join((
-        '{0}/bin'.format(bld_path),
         '{0}/bin'.format(src_path),
         dirname(GCC_PATH),
         '{0}/{1}/bin'.format(bld_path, VENV_SDIR),
@@ -105,8 +103,8 @@ def configure(ctx):
 
 
 def build(ctx):
-    bld_node = ctx.bldnode
-    bld_path = bld_node.abspath()
+    bld_path = ctx.bldnode.abspath()
+    src_path = ctx.srcnode.abspath()
     packages = ctx.env.PACKAGES
     # Monkey patching exec_command if required
     if ctx.options.continuous_stdout:
@@ -123,25 +121,33 @@ def build(ctx):
         rule = '${VIRTUALENV} --python=${PYTHON_EXE} ${TGT}',
         target = VENV_SDIR,
         name = 'mkvirtualenv')
+    v_pip = '{0}/{1}/bin/pip'.format(bld_path, VENV_SDIR)
+    v_python = '{0}/{1}/bin/python'.format(bld_path, VENV_SDIR)
     # Install various packages into virtualenv.  Install seqeuentially trying
     # to avoid puzzling errors in pip installs on travis
     ctx(
-        rule = 'pip install wheel',
+        rule = v_pip + ' install wheel',
         after = 'mkvirtualenv',
         name = 'install-wheel')
     # Install delocate into virtualenv
     ctx(
-        rule = 'cd ${SRC_PREFIX}/delocate && python setup.py install',
+        rule = 'cd {0}/delocate && {1} setup.py install'.format(
+            src_path, v_python),
         after = 'install-wheel',
         name = 'delocate',
     )
     # And Cython, tempita.
     ctx( # Use compiled wheels for Cython
-        rule = 'pip install --no-index -f {0} cython'.format(NIPY_WHEELHOUSE),
+        rule = 'which pip',
+        after = 'delocate',
+        name = 'which-pip')
+    ctx( # Use compiled wheels for Cython
+        rule = '{0} install --no-index -f {0} cython'.format(
+            v_pip, NIPY_WHEELHOUSE),
         after = 'delocate',
         name = 'install-cython')
     ctx(
-        rule = 'pip install tempita',
+        rule = v_pip + ' install tempita',
         after = 'install-cython',
         name = 'install-tempita')
     after_build_ready = ['install-tempita']
@@ -166,45 +172,43 @@ def build(ctx):
                         'cd ${SRC[0].abspath()} && python setup.py install',
                         after = after_build_ready)
         inst_numpy, np_dir_node = np_sp_pkg.unpack_patch_build(ctx)
+    build_strs = {}
+    for arch in ('32', '64'):
+        # Build command for numpy and scipy
+        build_strs[arch] = ('ATLAS="{arch}" '
+                            'LDSHARED="gcc {PY_LD_FLAGS} -m{arch}" '
+                            'LDFLAGS="{PY_LD_FLAGS} -m{arch}" '
+                            'CC="gcc -m{arch}" '
+                            'CFLAGS="-m{arch}" '
+                            'FFLAGS="-m{arch}" '
+                            'FARCH="-m{arch}" '
+                            '{v_python} setup.py bdist_wheel').format(
+                                arch = arch,
+                                PY_LD_FLAGS = ctx.env.PY_LD_FLAGS,
+                                v_python = v_python)
     for pkg_name in packages:
         git_tag = PKG2TAG[pkg_name]
         add_after = [inst_numpy] if pkg_name == 'scipy' else after_build_ready
         delocate_tasks = []
         for arch in ('32', '64'):
-            build_rule = ('cd ${SRC[0].abspath()} && '
-                          'ATLAS="%s" '
-                          'LDSHARED="gcc ${PY_LD_FLAGS} -m%s" '
-                          'LDFLAGS="${PY_LD_FLAGS} -m%s" '
-                          'CC="gcc -m%s" '
-                          'CFLAGS="-m%s" '
-                          'FFLAGS="-m%s" '
-                          'FARCH="-m%s" '
-                          'python ${bld.srcnode.abspath()}/bdist_wheel.py'
-                          % tuple([atlas_libs[arch]['path']] + [arch] * 6))
             pkg = GPM(pkg_name + '_' + arch,
                       git_tag,
-                      build_rule,
+                      'cd ${SRC[0].abspath()} && ' + build_strs[arch],
                       after = [atlas_libs[arch]['name']] + add_after,
                       out_sdir = pkg_name + '_' + arch,
                       git_sdir = pkg_name)
             py_task_name, dir_node = pkg.unpack_patch_build(ctx)
             delocate_task = pkg_name + '.delocate'
             ctx(
-                rule = ('cd ${SRC[0].abspath()} && '
-                        'python ${bld.srcnode.abspath()}'
-                        '/delocate/scripts/delocate-wheel '
-                        'dist/*.whl'),
+                rule = 'cd ${SRC[0].abspath()} && delocate-wheel dist/*.whl',
                 source = [dir_node],
                 after = [py_task_name],
                 name = delocate_task)
             delocate_tasks.append(delocate_task)
         ctx(
-            rule = ('cp src/%s_32/dist/*.whl wheelhouse && '
-                    'python ${bld.srcnode.abspath()}'
-                    '/delocate/scripts/delocate-fuse '
-                    'wheelhouse/%s*.whl '
-                    'src/%s_64/dist/%s*.whl' %
-                    tuple([pkg_name] * 4)),
+            rule = ('cp src/{pkg}_32/dist/*.whl wheelhouse && '
+                    'delocate-fuse wheelhouse/{pkg}*.whl '
+                    'src/{pkg}_64/dist/{pkg}*.whl').format(pkg = pkg_name),
             after = delocate_tasks,
             name = 'fuse')
 
