@@ -74,7 +74,7 @@ def configure(ctx):
     ctx.find_program('git', var='GIT')
     ctx.find_program('virtualenv', var='VIRTUALENV')
     # Update submodules in repo
-    print('Running git submodule update, this might take a while')
+    ctx.to_log('Running git submodule update, this might take a while')
     ctx.exec_command('git submodule update --init')
     # For compiling python modules
     sys_env['MACOSX_DEPLOYMENT_TARGET']='10.6'
@@ -216,7 +216,7 @@ def build(ctx):
 def refresh_submodules(ctx):
     # Command to set submodules to defined commits
     call = partial(check_call, shell=True)
-    print('Running git submodule update, this might take a while')
+    ctx.to_log('Running git submodule update, this might take a while')
     call('git submodule update --init')
     for git_name, git_pkg in GPM.instances.items():
         checkout_cmd = 'cd {s.git_sdir} && git checkout {s.commit}'.format(
@@ -252,11 +252,11 @@ def cp_wheels(ctx):
     if not exists(wheel_dir):
         os.makedirs(wheel_dir)
     if len(wheels) == 0:
-        print('No wheels to copy')
+        ctx.to_log('No wheels to copy')
     for wheel in wheels:
         out_wheel = pjoin(wheel_dir, basename(wheel))
         if exists(out_wheel):
             if not ctx.options.clobber:
                 ctx.fatal('{0} exists, --clobber not set'.format(out_wheel))
         shutil.copyfile(wheel, out_wheel)
-        print('Copied', wheel)
+        ctx.to_log('Copied' + wheel)
