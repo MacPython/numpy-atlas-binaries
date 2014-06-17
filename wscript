@@ -42,7 +42,7 @@ def options(opt):
     opt.add_option('--continuous-stdout', action='store_true', default=False,
                    help='whether to monkey patch waf to give continuous '
                    'stdout (useful for long-running jobs on travis)')
-    opt.add_option('--pip-install-opts', action='store',
+    opt.add_option('--pip-install-opts', action='store', default='',
                    help='options to prepend to pip install')
 
 
