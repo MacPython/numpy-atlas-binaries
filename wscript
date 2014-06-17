@@ -131,16 +131,15 @@ def build(ctx):
         after = 'mkvirtualenv',
         name = 'install-wheel')
     # Install delocate into virtualenv
-    ctx(
-        rule = 'cd {0}/delocate && {1} setup.py install'.format(
-            src_path, v_python),
-        after = 'install-wheel',
-        name = 'delocate',
-    )
+    pkg = GPM('delocate',
+              'HEAD',
+              'cd ${SRC[0].abspath()} && ' + v_python + ' setup.py install',
+              after = 'install-wheel')
+    delocate_name, dir_node = pkg.unpack_patch_build(ctx)
     # And Cython, tempita.
     ctx(
         rule = v_pip_install + 'cython',
-        after = 'delocate',
+        after = delocate_name,
         name = 'install-cython')
     ctx(
         rule = v_pip_install + 'tempita',
@@ -158,7 +157,7 @@ def build(ctx):
         ctx(
             rule = 'make_shared_atlas.py {0} {1}'.format(atlas_dir_in,
                                                          atlas_dir_out),
-            after = 'delocate',
+            after = delocate_name,
             name = name)
         atlas_libs[arch] = dict(path=atlas_dir_out, name=name)
     # Prepare for scipy build
