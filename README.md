@@ -107,8 +107,9 @@ bit](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/scripts/i
 These archives are linked against gfortran libs specific to this build of the
 compiler.
 
-The default ATLAS build builds static libraries only.  I then built dynamic
-libs from the static libs using [this script](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/bin/make_shared_atlas.py)
+The default ATLAS build builds static libraries only.  The build process makes
+dynamic libraries from the static libraries, for numpy and scipy to link
+against.
 
 #### Numpy / scipy
 
@@ -116,10 +117,12 @@ This is just a sketch.  The full build process is in the waf
 `wscript` in the repository.
 
 - for each architecture (i386, x86\_64)
-    - copy ATLAS directory for arch into build directory and make dynamic
-      ATLAS libs
+    - make new ATLAS directory for arch in build directory; copy ATLAS include
+      directory into new directory; make dynamic ATLAS libs using [this
+      script](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/bin/make_shared_atlas.py)
+      and copy into `lib` sub-directory in new ATLAS directory.
     - copy numpy / scipy sources to new directory
-    - if building scipy, build numpy with given back-compatibility tag to
+    - if building scipy, build numpy with recorded back-compatibility tag to
       build against
     - use ATLAS environment variable to point numpy / scipy at ATLAS binaries
       with matching architecture
@@ -134,11 +137,11 @@ This is just a sketch.  The full build process is in the waf
 I run this process for numpy / scipy using a command like this:
 
     workon py27 # use python virtualenv
-    python waf distclean configure build cp_wheels
+    python waf distclean configure build cp_wheels --wheel-dir ~/wheelhouse
 
 where `py27` is a virtualenv for Python 2.7.  Repeat using virtualenvs for
-Pythons 3.3 and 3.4.  `cp_wheels` unconditionally copies the fused build
-wheels into a directory `~/wheelhouse-atlas`.
+Pythons 3.3 and 3.4.  `cp_wheels` copies the fused build wheels into a
+directory `~/wheelhouse` (given with the `--wheel-dir` option).
 
 #### To do
 
