@@ -136,6 +136,11 @@ def build(ctx):
               'cd ${SRC[0].abspath()} && ' + v_python + ' setup.py install',
               after = 'install-wheel')
     delocate_name, dir_node = pkg.unpack_patch_build(ctx)
+    # For debugging, show me the python binary exe path in scripts
+    ctx(
+        rule = 'cat venv/bin/delocate-*',
+        after = delocate_name,
+        name = 'show-paths')
     # And Cython, tempita.
     ctx(
         rule = v_pip_install + 'cython',
