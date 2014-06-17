@@ -178,7 +178,7 @@ def build(ctx):
                             'FFLAGS="-m{arch}" '
                             'FARCH="-m{arch}" '
                             '{v_python} setup.py bdist_wheel').format(
-                                atlas_path = atlas_libs[arch],
+                                atlas_path = atlas_libs[arch]['path'],
                                 arch = arch,
                                 PY_LD_FLAGS = ctx.env.PY_LD_FLAGS,
                                 v_python = v_python)
