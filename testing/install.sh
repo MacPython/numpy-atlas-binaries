@@ -12,6 +12,7 @@ GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
 MACPYTHON_PREFIX=/Library/Frameworks/Python.framework/Versions
 GF_ARCHIVE=archives/gfortran-4.8.2-Mavericks.dmg
 GF_PKG_SDIR=gfortran-4.8.2-Mavericks/gfortran.pkg
+NIPY_WHEELHOUSE=https://nipy.bic.berkeley.edu/scipy_installers
 
 function require_success {
     STATUS=$?
@@ -35,7 +36,8 @@ function install_gfortran {
 function build_wheels {
     # Continuous-stdout flag is to keep travis-ci from timing out the build
     # commands because they last longer than 10 minutes without stdout
-    $PYTHON ./waf distclean configure build --continuous-stdout
+    $PYTHON ./waf distclean configure build --continuous-stdout \
+        --pip-install-opts="-f $NIPY_WHEELHOUSE --no-index"
     require_success "Build failed I'm afraid"
 }
 

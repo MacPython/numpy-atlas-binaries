@@ -24,7 +24,6 @@ ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2'
 VENV_SDIR = 'venv'
 PY_SP_NP_DEPENDS = {2: 'v1.5.1', 3: 'v1.7.1'}
 PKG2TAG = dict(numpy = 'v1.8.1', scipy = 'v0.14.0')
-NIPY_WHEELHOUSE = 'https://nipy.bic.berkeley.edu/scipy_installers'
 
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
@@ -43,6 +42,8 @@ def options(opt):
     opt.add_option('--continuous-stdout', action='store_true', default=False,
                    help='whether to monkey patch waf to give continuous '
                    'stdout (useful for long-running jobs on travis)')
+    opt.add_option('--pip-install-opts', action='store',
+                   help='options to prepend to pip install')
 
 
 def configure(ctx):
@@ -115,12 +116,13 @@ def build(ctx):
         rule = '${VIRTUALENV} --python=${PYTHON_EXE} ${TGT}',
         target = VENV_SDIR,
         name = 'mkvirtualenv')
-    v_pip = '{0}/{1}/bin/pip'.format(bld_path, VENV_SDIR)
+    v_pip_install = '{0}/{1}/bin/pip install {2} '.format(
+        bld_path, VENV_SDIR, ctx.options.pip_install_opts)
     v_python = '{0}/{1}/bin/python'.format(bld_path, VENV_SDIR)
     # Install various packages into virtualenv.  Install seqeuentially trying
     # to avoid puzzling errors in pip installs on travis
     ctx(
-        rule = v_pip + ' install wheel',
+        rule = v_pip_install + 'wheel',
         after = 'mkvirtualenv',
         name = 'install-wheel')
     # Install delocate into virtualenv
@@ -131,17 +133,12 @@ def build(ctx):
         name = 'delocate',
     )
     # And Cython, tempita.
-    ctx( # Use compiled wheels for Cython
-        rule = 'which pip',
-        after = 'delocate',
-        name = 'which-pip')
-    ctx( # Use compiled wheels for Cython
-        rule = '{0} install --no-index -f {0} cython'.format(
-            v_pip, NIPY_WHEELHOUSE),
+    ctx(
+        rule = v_pip_install + 'cython',
         after = 'delocate',
         name = 'install-cython')
     ctx(
-        rule = v_pip + ' install tempita',
+        rule = v_pip_install + 'tempita',
         after = 'install-cython',
         name = 'install-tempita')
     after_build_ready = ['install-tempita']
