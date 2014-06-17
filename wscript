@@ -132,12 +132,12 @@ def build(ctx):
         name = 'delocate',
     )
     # And Cython, tempita.
-    ctx(
-        rule = 'pip install -f {0} cython'.format(NIPY_WHEELHOUSE),
+    ctx( # Use compiled wheels for Cython
+        rule = 'pip install --no-index -f {0} cython'.format(NIPY_WHEELHOUSE),
         after = 'delocate',
         name = 'install-cython')
     ctx(
-        rule = 'pip install -f {0} tempita'.format(NIPY_WHEELHOUSE),
+        rule = 'pip install tempita',
         after = 'install-cython',
         name = 'install-tempita')
     after_build_ready = ['install-tempita']
@@ -156,16 +156,6 @@ def build(ctx):
             name = name)
         atlas_libs[arch] = dict(path=atlas_dir_out, name=name)
     # Prepare for scipy build
-    ctx(
-        rule = 'cat venv/bin/cython',
-        after = 'install-tempita')
-    ctx(
-        rule = 'python -c "import site; print(site.__file__)"',
-        after = 'install-tempita')
-    ctx(
-        rule = 'ls build/lib/python*/site-packages',
-        after = 'install-tempita')
-    return
     if 'scipy' in packages:
         np_sp_pkg = GPM('numpy',
                         ctx.env.NP_SP_DEPENDS,
