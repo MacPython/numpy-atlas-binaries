@@ -156,6 +156,10 @@ def build(ctx):
             name = name)
         atlas_libs[arch] = dict(path=atlas_dir_out, name=name)
     # Prepare for scipy build
+    ctx.exec_command('cat venv/bin/cython')
+    ctx.exec_command('python -c "import site; print(site.__file__)"')
+    ctx.exec_command('ls build/lib/python*/site-packages')
+    return
     if 'scipy' in packages:
         np_sp_pkg = GPM('numpy',
                         ctx.env.NP_SP_DEPENDS,
