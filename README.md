@@ -108,7 +108,7 @@ These archives are linked against gfortran libs specific to this build of the
 compiler.
 
 The default ATLAS build builds static libraries only.  I then built dynamic
-libs from the static libs using [this script](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/scripts/make_shared_atlas.py)
+libs from the static libs using [this script](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/bin/make_shared_atlas.py)
 
 #### Numpy / scipy
 
