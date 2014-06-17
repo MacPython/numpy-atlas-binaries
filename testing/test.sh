@@ -29,7 +29,7 @@ function simple_import {
 
 function unit_test {
     pkg=$1
-    test_str="import sys; import ${pkg}; sys.exit(not ${pkg}.test().wasSuccessful())"
+    test_str="import sys; import ${pkg}; sys.exit(not ${pkg}.test(verbose=0).wasSuccessful())"
     $PYTHON -c "$test_str"
     if [ $? -ne 0 ] ; then RET=1; fi
     arch -i386 $PYTHON -c "$test_str"
