@@ -19,10 +19,15 @@ from monkeyexec import monkey_patch
 GCC_VER = '4.8.2'
 GCC_PATH = '/usr/local/gfortran/bin/gcc'
 
+# Standard root for installed Python.org Pythons
 MACPIES_ROOT = '/Library/Frameworks/Python.framework/Versions'
+# Pattern for 32 / 64 bit built ATLAS library directories
 ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2'
+# subdirectory in build directory for virtualenv
 VENV_SDIR = 'venv'
+# Python version first digit -> required numpy for scipy build
 PY_SP_NP_DEPENDS = {2: 'v1.5.1', 3: 'v1.7.1'}
+# git tags for numpy and scipy to build
 PKG2TAG = dict(numpy = 'v1.8.1', scipy = 'v0.14.0')
 
 # If you change any git commits in the package definitions, you may need to run
