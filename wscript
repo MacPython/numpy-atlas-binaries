@@ -156,9 +156,15 @@ def build(ctx):
             name = name)
         atlas_libs[arch] = dict(path=atlas_dir_out, name=name)
     # Prepare for scipy build
-    ctx.exec_command('cat venv/bin/cython')
-    ctx.exec_command('python -c "import site; print(site.__file__)"')
-    ctx.exec_command('ls build/lib/python*/site-packages')
+    ctx(
+        rule = 'cat venv/bin/cython',
+        after = 'install-tempita')
+    ctx(
+        rule = 'python -c "import site; print(site.__file__)"',
+        after = 'install-tempita')
+    ctx(
+        rule = 'ls build/lib/python*/site-packages',
+        after = 'install-tempita')
     return
     if 'scipy' in packages:
         np_sp_pkg = GPM('numpy',
