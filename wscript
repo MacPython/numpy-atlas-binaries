@@ -255,4 +255,4 @@ def cp_wheels(ctx):
             if not ctx.options.clobber:
                 ctx.fatal('{0} exists, --clobber not set'.format(out_wheel))
         shutil.copyfile(wheel, out_wheel)
-        ctx.to_log('Copied' + wheel)
+        ctx.to_log('Copied ' + wheel)
