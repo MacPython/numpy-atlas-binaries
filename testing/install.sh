@@ -33,7 +33,9 @@ function install_gfortran {
 
 
 function build_wheels {
-    $PYTHON ./waf distclean configure build
+    # Continuous-stdout flag is to keep travis-ci from timing out the build
+    # commands because they last longer than 10 minutes without stdout
+    $PYTHON ./waf distclean configure build --continuous-stdout
     require_success "Build failed I'm afraid"
 }
 

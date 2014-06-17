@@ -11,20 +11,19 @@ from subprocess import check_call, CalledProcessError
 from functools import partial
 
 from waflib.Errors import ConfigurationError
-from wafutils import back_tick, FilePackageMaker as FPM, GitPackageMaker as GPM
+from wafutils import GitPackageMaker as GPM
+from monkeyexec import monkey_patch
 
-PY3 = sys.version_info[0] >= 3
 # Could get these from ATLAS libs directly - numpy does it in numpy distutils
 # it seems.
 GCC_VER = '4.8.2'
 GCC_PATH = '/usr/local/gfortran/bin/gcc'
+
 MACPIES_ROOT = '/Library/Frameworks/Python.framework/Versions'
-# Source lib, width of architecture
 ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2'
 VENV_SDIR = 'venv'
 PY_SP_NP_DEPENDS = {2: 'v1.5.1', 3: 'v1.7.1'}
-PKG2TAG = dict(numpy = 'v1.8.1',
-               scipy = 'v0.14.0')
+PKG2TAG = dict(numpy = 'v1.8.1', scipy = 'v0.14.0')
 NIPY_WHEELHOUSE = 'https://nipy.bic.berkeley.edu/scipy_installers'
 
 # If you change any git commits in the package definitions, you may need to run
@@ -33,7 +32,6 @@ NIPY_WHEELHOUSE = 'https://nipy.bic.berkeley.edu/scipy_installers'
 
 def options(opt):
     opt.load('compiler_c')
-    opt.load('python')
     # Output for wheel writing
     opt.add_option('-w', '--wheel-dir', action='store',
                    help='directory to write built mpkg')
@@ -42,6 +40,9 @@ def options(opt):
                    'numpy, scipy; e.g "numpy", "numpy,scipy"')
     opt.add_option('--clobber', action='store_true', default=False,
                    help='whether to overwrite existing output wheels')
+    opt.add_option('--continuous-stdout', action='store_true', default=False,
+                   help='whether to monkey patch waf to give continuous '
+                   'stdout (useful for long-running jobs on travis)')
 
 
 def _lib_path(start_path):
@@ -107,6 +108,9 @@ def build(ctx):
     bld_node = ctx.bldnode
     bld_path = bld_node.abspath()
     packages = ctx.env.PACKAGES
+    # Monkey patching exec_command if required
+    if ctx.options.continuous_stdout:
+        monkey_patch()
     # We need the src directory before we start
     def pre(ctx):
         # src directory for code tree copies
