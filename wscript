@@ -45,12 +45,6 @@ def options(opt):
                    'stdout (useful for long-running jobs on travis)')
 
 
-def _lib_path(start_path):
-    version = sys.version_info
-    return '{0}/lib/python{1}.{2}/site-packages'.format(
-        start_path, version[0], version[1])
-
-
 def configure(ctx):
     sys_env = dict(os.environ)
     bld_path = ctx.bldnode.abspath()
