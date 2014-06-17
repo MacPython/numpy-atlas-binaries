@@ -166,7 +166,7 @@ def build(ctx):
     build_strs = {}
     for arch in ('32', '64'):
         # Build command for numpy and scipy
-        build_strs[arch] = ('ATLAS="{arch}" '
+        build_strs[arch] = ('ATLAS="{atlas_path}" '
                             'LDSHARED="gcc {PY_LD_FLAGS} -m{arch}" '
                             'LDFLAGS="{PY_LD_FLAGS} -m{arch}" '
                             'CC="gcc -m{arch}" '
@@ -174,6 +174,7 @@ def build(ctx):
                             'FFLAGS="-m{arch}" '
                             'FARCH="-m{arch}" '
                             '{v_python} setup.py bdist_wheel').format(
+                                atlas_path = atlas_libs[arch],
                                 arch = arch,
                                 PY_LD_FLAGS = ctx.env.PY_LD_FLAGS,
                                 v_python = v_python)
