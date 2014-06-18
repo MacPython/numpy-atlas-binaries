@@ -128,7 +128,7 @@ def build(ctx):
     # Install various packages into virtualenv.  Install seqeuentially trying
     # to avoid puzzling errors in pip installs on travis
     ctx( # to make sure wheel installs will work
-        rule = v_pip_install + '--upgrade pip',
+        rule = v_pip_install + '--ignore-installed pip',
         after = 'mkvirtualenv',
         name = 'upgrade-pip')
     ctx(
