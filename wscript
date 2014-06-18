@@ -26,7 +26,7 @@ ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2'
 # subdirectory in build directory for virtualenv
 VENV_SDIR = 'venv'
 # Python version first digit -> required numpy for scipy build
-PY_SP_NP_DEPENDS = {2: 'v1.5.1', 3: 'v1.7.1'}
+PY_SP_NP_DEPENDS = {2: '1.5.1', 3: '1.7.1'}
 # git tags for numpy and scipy to build
 PKG2TAG = dict(numpy = 'v1.8.1', scipy = 'v0.14.0')
 
@@ -104,7 +104,6 @@ def configure(ctx):
 
 def build(ctx):
     bld_path = ctx.bldnode.abspath()
-    src_path = ctx.srcnode.abspath()
     packages = ctx.env.PACKAGES
     # Monkey patching exec_command if required
     if ctx.options.continuous_stdout:
@@ -169,11 +168,10 @@ def build(ctx):
         atlas_libs[arch] = dict(path=atlas_dir_out, name=name)
     # Prepare for scipy build
     if 'scipy' in packages:
-        np_sp_pkg = GPM('numpy',
-                        ctx.env.NP_SP_DEPENDS,
-                        'cd ${SRC[0].abspath()} && python setup.py install',
-                        after = after_build_ready)
-        inst_numpy, np_dir_node = np_sp_pkg.unpack_patch_build(ctx)
+        ctx(
+            rule = v_pip_install + 'numpy==' + ctx.env.NP_SP_DEPENDS,
+            after = 'install-tempita',
+            name = 'numpy-for-scipy')
     build_strs = {}
     for arch in ('32', '64'):
         # Build command for numpy and scipy
@@ -191,7 +189,7 @@ def build(ctx):
                                 v_python = v_python)
     for pkg_name in packages:
         git_tag = PKG2TAG[pkg_name]
-        add_after = [inst_numpy] if pkg_name == 'scipy' else after_build_ready
+        add_after = ['numpy-for-scipy'] if pkg_name == 'scipy' else after_build_ready
         delocate_tasks = []
         for arch in ('32', '64'):
             pkg = GPM(pkg_name + '_' + arch,
