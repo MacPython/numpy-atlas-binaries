@@ -75,7 +75,7 @@ if [ "$TEST" == "macpython" ] ; then
     get_pip $PYTHON
     export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
     install_gfortran
-    $PIP install virtualenv
+    $PIP install virtualenv==1.10.1
     build_wheels
     # Get ready for tests by using built virtualenv
     export PATH=$PWD/build/venv/bin:$PATH
