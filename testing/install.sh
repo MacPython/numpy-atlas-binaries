@@ -37,7 +37,7 @@ function build_wheels {
     # Continuous-stdout flag is to keep travis-ci from timing out the build
     # commands because they last longer than 10 minutes without stdout
     $PYTHON ./waf distclean configure build --continuous-stdout \
-        --pip-install-opts="-f $NIPY_WHEELHOUSE --no-index"
+        --pip-install-opts="-f $NIPY_WHEELHOUSE"
     require_success "Build failed I'm afraid"
 }
 
