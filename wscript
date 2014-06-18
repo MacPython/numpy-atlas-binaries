@@ -121,9 +121,11 @@ def build(ctx):
         rule = '${VIRTUALENV} --python=${PYTHON_EXE} ${TGT}',
         target = VENV_SDIR,
         name = 'mkvirtualenv')
-    v_pip_install = '{0}/{1}/bin/pip install {2} '.format(
-        bld_path, VENV_SDIR, ctx.options.pip_install_opts)
     v_python = '{0}/{1}/bin/python'.format(bld_path, VENV_SDIR)
+    # Use workaround for wrong shebang line in scripts, maybe related to
+    # https://github.com/pypa/virtualenv/issues/532
+    v_pip_install = '{0} -m pip install {1} '.format(
+        v_python, ctx.options.pip_install_opts)
     # Install various packages into virtualenv.  Install seqeuentially trying
     # to avoid puzzling errors in pip installs on travis
     ctx(
