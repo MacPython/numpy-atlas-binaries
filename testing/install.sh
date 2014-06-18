@@ -75,7 +75,13 @@ if [ "$TEST" == "macpython" ] ; then
     get_pip $PYTHON
     export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
     install_gfortran
-    $PIP install virtualenv==1.10.1
+    $PIP install virtualenv
+    if [ "${PY_VERSION:0:1}" == 3 ] ; then
+        # Need to run in virtualenv for Python 3
+        # Otherwise paths get very confused when using virtualenv
+        virtualenv py3_venv
+        export PYTHON=$PWD/py3_venv/bin/python
+    fi
     build_wheels
     # Get ready for tests by using built virtualenv
     export PATH=$PWD/build/venv/bin:$PATH
