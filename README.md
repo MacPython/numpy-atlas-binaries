@@ -1,3 +1,5 @@
+![travis build result](https://travis-ci.org/matthew-brett/numpy-atlas-binaries.svg?branch=master "travis-ci build result")
+
 # Build machinery for numpy / scipy ATLAS binaries
 
 Numpy and scipy need BLAS and LAPACK libraries for fast matrix and vector
@@ -111,7 +113,7 @@ The default ATLAS build builds static libraries only.  The build process makes
 dynamic libraries from the static libraries, for numpy and scipy to link
 against.
 
-#### Numpy / scipy
+#### Building Numpy and scipy
 
 This is just a sketch.  The full build process is in the waf
 `wscript` in the repository.
@@ -143,8 +145,17 @@ where `py27` is a virtualenv for Python 2.7.  Repeat using virtualenvs for
 Pythons 3.3 and 3.4.  `cp_wheels` copies the fused build wheels into a
 directory `~/wheelhouse` (given with the `--wheel-dir` option).
 
+#### Automated build / test of numpy / scipy on Travis-CI
+
+I've set these builds to run on [travis-ci](http://travis-ci.org) - see the
+[travis builds
+page](https://travis-ci.org/matthew-brett/numpy-atlas-binaries).
+
+The builds upload the binaries to a [Rackspace hosted
+container](http://a365fff413fe338398b6-1c8a9b3114517dc5fe17b7c3f8c63a43.r19.cf2.rackcdn.com)
+(thanks to Olivier Grisel and Rackspace for setting up access).
+
 #### To do
 
 - Maybe iterate over Python.org versions in the build process rather than
   doing it by hand on the command line, as above.
-- Work out some way of uploading the build products from the travis-ci builders.
