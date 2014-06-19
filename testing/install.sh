@@ -79,6 +79,7 @@ if [ "$TEST" == "macpython" ] ; then
     if [ "${PY_VERSION:0:1}" == 3 ] ; then
         # Need to run in virtualenv for Python 3
         # Otherwise paths get very confused when using virtualenv
+        # Related to https://github.com/pypa/virtualenv/issues/620
         virtualenv py3_venv
         export PYTHON=$PWD/py3_venv/bin/python
     fi
