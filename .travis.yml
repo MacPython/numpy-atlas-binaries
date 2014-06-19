@@ -22,3 +22,13 @@ script:
 
 after_failure:
   - echo $PWD
+
+before_deploy: cd build/wheelhouse
+deploy:
+  provider: cloudfiles
+  username: travis-worker
+  api_key:
+    secure: U+rKEiR6sQ+vsTJt3MuqqZwWvPV4gkjnQvzeR6cP9JZpfvkKuaa+vcgj7OngZ69DUgFTzRiTnFAxCbArGpDUkbP9V+kX5UgkePMdxhK+j9V0UOo8g+QwZtlqmV78pTXemWndwbqcy0uyfxuBpxhPXGSAHuzk+pZUbhH2zSEfh0s=
+  region: ORD
+  container: wheels
+  skip_cleanup: true
