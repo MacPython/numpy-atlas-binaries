@@ -24,32 +24,38 @@ function simple_import {
 
 function unit_test {
     pkg=$1
+    arch=$2
     test_str="import sys; import ${pkg}; sys.exit(not ${pkg}.test(verbose=0).wasSuccessful())"
-    $PYTHON -c "$test_str"
     if [ $? -ne 0 ] ; then RET=1; fi
-    arch -i386 $PYTHON -c "$test_str"
+    arch $arch $PYTHON -c "$test_str"
     if [ $? -ne 0 ] ; then RET=1; fi
 }
 
 echo "unit tests"
 if [[ $PACKAGES =~ "scipy" ]]; then
-    # Python 3.4 doesn't test correctly against 1.7.1
-    if [[ ${PY_VERSION:0:3} == "3.4" ]] ; then
-        $PIP install numpy
+    if [ -n "$UPGRADE_NP" ]; then
+        $PIP install --upgrade numpy
     fi
     # Install scipy from wheel
     $PIP install $WHEELHOUSE/scipy*.whl
     simple_import numpy
     simple_import scipy
-    unit_test scipy
+    unit_test scipy -x86_64
+    # If we're going to test with new numpy later, skip i386 tests to save
+    # time, otherwise travis will time out (50 minute cutoff)
+    if [[ ! $PACKAGES =~ "numpy" ]]; then
+        unit_test scipy -i386
+    fi
 fi
 if [[ $PACKAGES =~ "numpy" ]]; then
     $PIP install $WHEELHOUSE/numpy*.whl
     simple_import numpy
-    unit_test numpy
+    unit_test numpy -x86_64
+    unit_test numpy -i386
     if [[ $PACKAGES =~ "scipy" ]]; then
         simple_import scipy
-        unit_test scipy
+        unit_test scipy -x86_64
+        unit_test scipy -i386
     fi
 fi
 
