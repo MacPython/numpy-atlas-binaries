@@ -120,13 +120,12 @@ def build(ctx):
         rule = '${VIRTUALENV} --python=${PYTHON_EXE} ${TGT}',
         target = VENV_SDIR,
         name = 'mkvirtualenv')
-    v_python = '{0}/{1}/bin/python'.format(bld_path, VENV_SDIR)
-    # Use workaround for wrong shebang line in scripts, maybe related to
-    # https://github.com/pypa/virtualenv/issues/532
-    v_pip_install = '{0} -m pip install {1} '.format(
-        v_python, ctx.options.pip_install_opts)
-    # Install various packages into virtualenv.  Install seqeuentially trying
-    # to avoid puzzling errors in pip installs on travis
+    v_bin = pjoin(bld_path, VENV_SDIR, 'bin')
+    v_python = pjoin(v_bin, 'python')
+    v_pip_install = '{0}/pip install {1} '.format(
+        v_bin, ctx.options.pip_install_opts)
+    # Install various packages into virtualenv.  Install sequentially
+    # for simplicity
     ctx( # to make sure wheel installs will work
         rule = v_pip_install + '--ignore-installed pip',
         after = 'mkvirtualenv',
@@ -150,11 +149,6 @@ def build(ctx):
         rule = v_pip_install + 'tempita',
         after = 'install-cython',
         name = 'install-tempita')
-    # For debugging, show me the python binary exe path in scripts
-    ctx(
-        rule = 'cat venv/bin/delocate-* venv/bin/cython',
-        after = 'install-cython',
-        name = 'show-paths')
     after_build_ready = ['install-tempita']
     # Build ATLAS libs
     atlas_libs = {}
@@ -174,7 +168,7 @@ def build(ctx):
     if 'scipy' in packages:
         ctx(
             rule = v_pip_install + 'numpy==' + ctx.env.NP_SP_DEPENDS,
-            after = 'install-tempita',
+            after = after_build_ready,
             name = 'numpy-for-scipy')
     build_strs = {}
     for arch in ('32', '64'):
