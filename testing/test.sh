@@ -33,6 +33,10 @@ function unit_test {
 
 echo "unit tests"
 if [[ $PACKAGES =~ "scipy" ]]; then
+    # Python 3.4 doesn't test correctly against 1.7.1
+    if [[ ${PY_VERSION:0:3} == "3.4" ]] ; then
+        $PIP install numpy
+    fi
     # Install scipy from wheel
     $PIP install $WHEELHOUSE/scipy*.whl
     simple_import numpy
