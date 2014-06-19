@@ -9,9 +9,6 @@ PIP=pip
 WHEELHOUSE=$PWD/../build/wheelhouse
 pip install nose
 
-# Install scipy from wheel
-$PIP install $WHEELHOUSE/scipy*.whl
-
 # Return code
 RET=0
 
@@ -20,11 +17,9 @@ $PYTHON -c "import sys; print('\n'.join(sys.path))"
 if [ $? -ne 0 ] ; then RET=1; fi
 
 function simple_import {
-    for pkg in numpy scipy
-    do
-        $PYTHON -c "import ${pkg}; print(${pkg}.__version__, ${pkg}.__file__)"
-        if [ $? -ne 0 ] ; then RET=1; fi
-    done
+    pkg=$1
+    $PYTHON -c "import ${pkg}; print(${pkg}.__version__, ${pkg}.__file__)"
+    if [ $? -ne 0 ] ; then RET=1; fi
 }
 
 function unit_test {
@@ -37,10 +32,22 @@ function unit_test {
 }
 
 echo "unit tests"
-unit_test scipy
-$PIP install $WHEELHOUSE/numpy*.whl
-unit_test numpy
-unit_test scipy
+if [[ $PACKAGES =~ "scipy" ]]; then
+    # Install scipy from wheel
+    $PIP install $WHEELHOUSE/scipy*.whl
+    simple_import numpy
+    simple_import scipy
+    unit_test scipy
+fi
+if [[ $PACKAGES =~ "numpy" ]]; then
+    $PIP install $WHEELHOUSE/numpy*.whl
+    simple_import numpy
+    unit_test numpy
+    if [[ $PACKAGES =~ "scipy" ]]; then
+        simple_import scipy
+        unit_test scipy
+    fi
+fi
 
 echo "done testing numpy, scipy"
 

@@ -1,12 +1,7 @@
 #!/usr/bin/env sh
 # Depends on following envs being defined:
-# REQUIREMENTS_FILE (URL or filename for pip requirements file)
-# TEST (name of test - see TEST checks below)
-#
-# These variables may or may not be defined depending on the test
-# PY (major.minor form of Python version)
-# PY_VERSION (major.minor.point form of Python version)
-# VENV (defined if we should install and test in virtualenv)
+# PY_VERSION (python x.y.z version number)
+# PACKAGES ("numpy", "scipy", "numpy,scipy"
 
 GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
 MACPYTHON_PREFIX=/Library/Frameworks/Python.framework/Versions
@@ -34,10 +29,11 @@ function install_gfortran {
 
 
 function build_wheels {
+    packages=$1
     # Continuous-stdout flag is to keep travis-ci from timing out the build
     # commands because they last longer than 10 minutes without stdout
     $PYTHON ./waf distclean configure build --continuous-stdout \
-        --pip-install-opts="-f $NIPY_WHEELHOUSE"
+        --pip-install-opts="-f $NIPY_WHEELHOUSE" --packages="$packages"
     require_success "Build failed I'm afraid"
 }
 
@@ -68,26 +64,19 @@ function get_pip {
 }
 
 
-if [ "$TEST" == "macpython" ] ; then
-
-    install_mac_python $PY_VERSION
-    PY=${PY_VERSION:0:3}
-    get_pip $PYTHON
-    export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
-    install_gfortran
-    $PIP install virtualenv
-    if [ "${PY_VERSION:0:1}" == 3 ] ; then
-        # Need to run in virtualenv for Python 3
-        # Otherwise paths get very confused when using virtualenv
-        # Related to https://github.com/pypa/virtualenv/issues/620
-        virtualenv py3_venv
-        export PYTHON=$PWD/py3_venv/bin/python
-    fi
-    build_wheels
-    # Get ready for tests by using built virtualenv
-    export PATH=$PWD/build/venv/bin:$PATH
-
-else
-    echo "Unknown test setting ($TEST)"
-    exit -1
+install_mac_python $PY_VERSION
+PY=${PY_VERSION:0:3}
+get_pip $PYTHON
+export PIP="sudo $MACPYTHON_PREFIX/$PY/bin/pip$PY"
+install_gfortran
+$PIP install virtualenv
+if [ "${PY_VERSION:0:1}" == 3 ] ; then
+    # Need to run in virtualenv for Python 3
+    # Otherwise paths get very confused when using virtualenv
+    # Related to https://github.com/pypa/virtualenv/issues/620
+    virtualenv py3_venv
+    export PYTHON=$PWD/py3_venv/bin/python
 fi
+build_wheels $PACKAGES
+# Get ready for tests by using built virtualenv
+export PATH=$PWD/build/venv/bin:$PATH
