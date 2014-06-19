@@ -2,12 +2,14 @@ language:
   - objective-c
 
 env:
-  global:
-    - PACKAGES="numpy,scipy"
   matrix:
-    - PY_VERSION=2.7.7
-    - PY_VERSION=3.3.5
-    - PY_VERSION=3.4.1 UPGRADE_NP=1 # Tests fail for np 1.7.1 / Python 3.4
+    - PY_VERSION=2.7.7 PACKAGES="numpy"
+    - PY_VERSION=2.7.7 PACKAGES="scipy"
+    - PY_VERSION=3.3.5 PACKAGES="numpy"
+    - PY_VERSION=3.3.5 PACKAGES="scipy"
+      # Tests fail for np 1.7.1 / Python 3.4
+    - PY_VERSION=3.4.1 UPGRADE_NP=1 PACKAGES="numpy"
+    - PY_VERSION=3.4.1 UPGRADE_NP=1 PACKAGES="scipy"
 
 install:
   - set -vx  # echo commands
