@@ -2,7 +2,7 @@
 # Should be 'source'ed
 
 # Use generic macpython fetching and utilities
-source terrify/travis_tools.sh
+source terryfy/travis_tools.sh
 
 # GNU Fortran specifics
 GF_ARCHIVE=archives/gfortran-4.8.2-Mavericks.dmg
