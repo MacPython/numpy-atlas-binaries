@@ -7,3 +7,6 @@
 [submodule "delocate"]
 	path = delocate
 	url = git://github.com/matthew-brett/delocate.git
+[submodule "terryfy"]
+	path = terryfy
+	url = git://github.com/matthew-brett/terryfy.git

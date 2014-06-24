@@ -26,7 +26,6 @@ function unit_test {
     pkg=$1
     arch=$2
     test_str="import sys; import ${pkg}; sys.exit(not ${pkg}.test(verbose=0).wasSuccessful())"
-    if [ $? -ne 0 ] ; then RET=1; fi
     arch $arch $PYTHON -c "$test_str"
     if [ $? -ne 0 ] ; then RET=1; fi
 }
@@ -63,4 +62,3 @@ echo "done testing numpy, scipy"
 
 # Set the return code
 (exit $RET)
-

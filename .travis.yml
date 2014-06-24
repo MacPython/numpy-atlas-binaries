@@ -3,23 +3,23 @@ language:
 
 env:
   matrix:
-    - PY_VERSION=2.7.7 PACKAGES="numpy"
-    - PY_VERSION=2.7.7 PACKAGES="scipy"
-    - PY_VERSION=3.3.5 PACKAGES="numpy"
-    - PY_VERSION=3.3.5 PACKAGES="scipy"
-      # Tests fail for np 1.7.1 / Python 3.4
-    - PY_VERSION=3.4.1 UPGRADE_NP=1 PACKAGES="numpy"
-    - PY_VERSION=3.4.1 UPGRADE_NP=1 PACKAGES="scipy"
+    - VERSION=2.7.7 PACKAGES="numpy"
+    - VERSION=2.7.7 PACKAGES="scipy"
+    - VERSION=3.3.5 PACKAGES="numpy"
+    - VERSION=3.3.5 PACKAGES="scipy"
+      # Tests fail for np 1.7.1 / Python 3.4, so upgrade numpy to current pip
+    - VERSION=3.4.1 UPGRADE_NP=1 PACKAGES="numpy"
+    - VERSION=3.4.1 UPGRADE_NP=1 PACKAGES="scipy"
 
 install:
   - set -vx  # echo commands
-  - source ./testing/install.sh
+  - source travis_install.sh
 
 script:
   - echo $PWD
   - mkdir tmp_test_dir
   - cd tmp_test_dir
-  - source ../testing/test.sh
+  - source ../travis_test.sh
   - cd ..
 
 after_failure:

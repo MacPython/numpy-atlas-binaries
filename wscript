@@ -11,8 +11,9 @@ from subprocess import check_call, CalledProcessError
 from functools import partial
 
 from waflib.Errors import ConfigurationError
-from wafutils import GitPackageMaker as GPM
-from monkeyexec import monkey_patch
+
+from terryfy.wafutils import GitPackageMaker as GPM
+from terryfy.monkeyexec import monkey_patch
 
 # Could get these from ATLAS libs directly - numpy does it in numpy distutils
 # it seems.
