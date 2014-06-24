@@ -31,11 +31,11 @@ function build_wheels {
 }
 
 
-# Need to run in virtualenv for Python 3 - hence "1" at end to signal
-# virtualenv
+# Need to run in virtualenv for Python 3 - hence "installation_venv" at the
+# end of the invocation to install within virtualenv
 #
 # Otherwise paths get very confused when using virtualenv
 # Related to https://github.com/pypa/virtualenv/issues/620
-get_python_environment macpython $VERSION 1
+get_python_environment macpython $VERSION installation_venv
 install_gfortran
 build_wheels $PACKAGES
