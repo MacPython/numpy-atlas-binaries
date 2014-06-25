@@ -66,6 +66,7 @@ def configure(ctx):
         '{0}/{1}/bin'.format(bld_path, VENV_SDIR),
         sys_env['PATH']))
     os.environ['PATH'] = sys_env['PATH']
+    print("Path", '\n'.join(os.environ['PATH']))
     ctx.load('compiler_c')
     # We need to record the build directory for use by non-build functions
     ctx.env.BLD_PREFIX = bld_path
