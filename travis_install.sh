@@ -38,4 +38,6 @@ function build_wheels {
 # Related to https://github.com/pypa/virtualenv/issues/620
 get_python_environment macpython $VERSION installation_venv
 install_gfortran
+# Need virtualenv to make build virtualenv
+$PIP_CMD install virtualenv
 build_wheels $PACKAGES
