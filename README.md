@@ -152,7 +152,7 @@ I've set these builds to run on [travis-ci](http://travis-ci.org) - see the
 page](https://travis-ci.org/matthew-brett/numpy-atlas-binaries).
 
 The builds upload the binaries to a [Rackspace hosted
-container](http://a365fff413fe338398b6-1c8a9b3114517dc5fe17b7c3f8c63a43.r19.cf2.rackcdn.com)
+container](http://a365fff413fe338398b6-1c8a9b3114517dc5fe17b7c3f8c63a43.r19.cf2.rackcdn.com/)
 (thanks to Olivier Grisel and Rackspace for setting up access).
 
 #### To do

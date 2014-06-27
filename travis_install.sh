@@ -28,6 +28,7 @@ function build_wheels {
     $PYTHON_EXE ./waf distclean configure build --continuous-stdout \
         --pip-install-opts="-f $NIPY_WHEELHOUSE" --packages="$packages"
     require_success "Build failed I'm afraid"
+    rename_wheels build/wheelhouse
 }
 
 
