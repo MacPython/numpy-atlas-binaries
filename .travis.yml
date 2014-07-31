@@ -19,6 +19,8 @@ install:
   - source travis_install.sh
 
 script:
+  # delete installed compiler to test on clang-only system
+  - sudo rm -rf /usr/local/gfortran
   - echo $PWD
   - mkdir tmp_test_dir
   - cd tmp_test_dir
