@@ -4,7 +4,7 @@ language:
 env:
   global:
     - NP_TAG=v1.9.0b2
-    - SP_TAG=v0.11.0
+    - SP_TAG=v0.10.0
   matrix:
     #- VERSION=2.7.7 PACKAGES="numpy"
     #- VERSION=3.3.5 PACKAGES="numpy"
