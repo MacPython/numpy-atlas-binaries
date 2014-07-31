@@ -188,11 +188,13 @@ def build(ctx):
                             'CFLAGS="-m{arch}" '
                             'FFLAGS="-m{arch}" '
                             'FARCH="-m{arch}" '
-                            '{v_python} setup.py bdist_wheel').format(
+                            '{v_python} {src_path}/scripts/bdist_wheel.py').format(
                                 atlas_path = atlas_libs[arch]['path'],
                                 arch = arch,
                                 PY_LD_FLAGS = ctx.env.PY_LD_FLAGS,
-                                v_python = v_python)
+                                v_python = v_python,
+                                src_path = ctx.env.SRC_PREFIX,
+                            )
     for pkg_name in packages:
         git_tag = ctx.env.PKG2TAG[pkg_name]
         add_after = ['numpy-for-scipy'] if pkg_name == 'scipy' else after_build_ready
