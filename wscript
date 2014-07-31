@@ -28,8 +28,8 @@ ATLAS_SDIR_PATTERN = 'archives/atlas-3.10.1-build-{0}-sse2-full-gcc4.8.2'
 VENV_SDIR = 'venv'
 # Python version first digit -> required numpy for scipy build
 PY_SP_NP_DEPENDS = {2: '1.5.1', 3: '1.7.1'}
-# git tags for numpy and scipy to build
-PKG2TAG = dict(numpy = 'v1.8.1', scipy = 'v0.14.0')
+# default git tags for numpy and scipy to build (overridden by options)
+DEFAULT_PKG2TAG = dict(numpy = 'v1.8.1', scipy = 'v0.14.0')
 
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
@@ -43,6 +43,10 @@ def options(opt):
     opt.add_option('--packages', action='store',
                    help='comma separated list of package to build from '
                    'numpy, scipy; e.g "numpy", "numpy,scipy"')
+    opt.add_option('--np-tag', action='store', default=DEFAULT_PKG2TAG['numpy'],
+                   help='numpy tag to build, e.g v1.8.1'),
+    opt.add_option('--sp-tag', action='store', default=DEFAULT_PKG2TAG['scipy'],
+                   help='scipy tag to build, e.g v0.14.1'),
     opt.add_option('--clobber', action='store_true', default=False,
                    help='whether to overwrite existing output wheels')
     opt.add_option('--continuous-stdout', action='store_true', default=False,
@@ -101,6 +105,9 @@ def configure(ctx):
     else:
         packages = [pkg.strip() for pkg in packages.split(',') if pkg.strip()]
     ctx.env.PACKAGES = packages
+    # Package tags
+    ctx.env.PKG2TAG = dict(numpy = ctx.options.np_tag,
+                           scipy = ctx.options.sp_tag)
 
 
 def build(ctx):
@@ -187,7 +194,7 @@ def build(ctx):
                                 PY_LD_FLAGS = ctx.env.PY_LD_FLAGS,
                                 v_python = v_python)
     for pkg_name in packages:
-        git_tag = PKG2TAG[pkg_name]
+        git_tag = ctx.env.PKG2TAG[pkg_name]
         add_after = ['numpy-for-scipy'] if pkg_name == 'scipy' else after_build_ready
         delocate_tasks = []
         for arch in ('32', '64'):
