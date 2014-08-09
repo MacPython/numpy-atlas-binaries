@@ -9,4 +9,4 @@
 	url = git://github.com/matthew-brett/delocate.git
 [submodule "terryfy"]
 	path = terryfy
-	url = git://github.com/matthew-brett/terryfy.git
+	url = git://github.com/MacPython/terryfy.git
