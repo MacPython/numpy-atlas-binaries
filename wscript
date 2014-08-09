@@ -29,11 +29,15 @@ VENV_SDIR = 'venv'
 # Python version first digit -> required numpy for scipy build
 PY_SP_NP_DEPENDS = {2: '1.5.1', 3: '1.7.1'}
 # default git tags for numpy and scipy to build (overridden by options)
-DEFAULT_PKG2TAG = dict(numpy = 'v1.8.1', scipy = 'v0.14.0')
+DEFAULT_PKG2TAG = dict(numpy = 'v1.8.1',
+                       scipy = 'v0.14.0',
+                       sklearn = '0.15.1')
+PKG_WHEEL_PREFIXES = dict(scipy = 'scipy',
+                          numpy = 'numpy',
+                          sklearn = 'scikit_learn')
 
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
-
 
 def options(opt):
     opt.load('compiler_c')
@@ -43,10 +47,15 @@ def options(opt):
     opt.add_option('--packages', action='store',
                    help='comma separated list of package to build from '
                    'numpy, scipy; e.g "numpy", "numpy,scipy"')
-    opt.add_option('--np-tag', action='store', default=DEFAULT_PKG2TAG['numpy'],
+    opt.add_option('--np-tag', action='store',
+                   default=DEFAULT_PKG2TAG['numpy'],
                    help='numpy tag to build, e.g v1.8.1'),
-    opt.add_option('--sp-tag', action='store', default=DEFAULT_PKG2TAG['scipy'],
+    opt.add_option('--sp-tag', action='store',
+                   default=DEFAULT_PKG2TAG['scipy'],
                    help='scipy tag to build, e.g v0.14.1'),
+    opt.add_option('--skl-tag', action='store',
+                   default=DEFAULT_PKG2TAG['sklearn'],
+                   help='scikit-learn tag to build, e.g 0.15.1'),
     opt.add_option('--clobber', action='store_true', default=False,
                    help='whether to overwrite existing output wheels')
     opt.add_option('--continuous-stdout', action='store_true', default=False,
@@ -101,13 +110,14 @@ def configure(ctx):
     # packages to compile
     packages = ctx.options.packages
     if packages is None or packages == '':
-        packages = ['numpy', 'scipy']
+        packages = ['numpy', 'scipy', 'sklearn']
     else:
         packages = [pkg.strip() for pkg in packages.split(',') if pkg.strip()]
     ctx.env.PACKAGES = packages
     # Package tags
     ctx.env.PKG2TAG = dict(numpy = ctx.options.np_tag,
-                           scipy = ctx.options.sp_tag)
+                           scipy = ctx.options.sp_tag,
+                           sklearn = ctx.options.skl_tag)
 
 
 def build(ctx):
@@ -172,8 +182,8 @@ def build(ctx):
             after = delocate_name,
             name = name)
         atlas_libs[arch] = dict(path=atlas_dir_out, name=name)
-    # Prepare for scipy build
-    if 'scipy' in packages:
+    # Prepare for scipy, scikit-learn build
+    if packages != ['numpy']:
         ctx(
             rule = v_pip_install + 'numpy==' + ctx.env.NP_SP_DEPENDS,
             after = after_build_ready,
@@ -197,7 +207,8 @@ def build(ctx):
                             )
     for pkg_name in packages:
         git_tag = ctx.env.PKG2TAG[pkg_name]
-        add_after = ['numpy-for-scipy'] if pkg_name == 'scipy' else after_build_ready
+        add_after = (['numpy-for-scipy'] if pkg_name != 'numpy'
+                     else after_build_ready)
         delocate_tasks = []
         for arch in ('32', '64'):
             pkg = GPM(pkg_name + '_' + arch,
@@ -216,8 +227,10 @@ def build(ctx):
             delocate_tasks.append(delocate_task)
         ctx(
             rule = ('cp src/{pkg}_32/dist/*.whl wheelhouse && '
-                    'delocate-fuse wheelhouse/{pkg}*.whl '
-                    'src/{pkg}_64/dist/{pkg}*.whl').format(pkg = pkg_name),
+                    'delocate-fuse wheelhouse/{whl_prefix}*.whl '
+                    'src/{pkg}_64/dist/{whl_prefix}*.whl').format(
+                        pkg = pkg_name,
+                        whl_prefix=PKG_WHEEL_PREFIXES[pkg_name]),
             after = delocate_tasks,
             name = 'fuse')
 
