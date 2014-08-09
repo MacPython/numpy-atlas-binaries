@@ -43,7 +43,7 @@ def main():
         if not prev_archs is None and not prev_archs == archs:
             raise RuntimeError("Oops, differing archs in libs")
         prev_archs = archs
-    arch = archs.pop()
+    arch = list(archs).pop()
     if arch not in ('i386', 'x86_64'):
         raise ValueError("Only know i386, x86_64, not " + arch)
     dynamic_root = realpath(expanduser(dynamic_root))
