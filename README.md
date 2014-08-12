@@ -1,4 +1,4 @@
-![travis build result](https://travis-ci.org/matthew-brett/numpy-atlas-binaries.svg?branch=master "travis-ci build result")
+![travis build result](https://travis-ci.org/MacPython/numpy-atlas-binaries.svg?branch=master "travis-ci build result")
 
 # Build machinery for numpy / scipy ATLAS binaries
 
@@ -64,7 +64,7 @@ I need gcc and gfortran compilers to build ATLAS and scipy.
 I chose gcc / gfortran 4.8.2 from (at the time)
 https://gcc.gnu.org/wiki/GFortranBinaries#MacOS
 
-I've put the binary I used in this repo at https://github.com/matthew-brett/numpy-atlas-binaries/tree/master/archives to make sure the builds are reproducible.
+I've put the binary I used in this repo at https://github.com/MacPython/numpy-atlas-binaries/tree/master/archives to make sure the builds are reproducible.
 
 Another option I could have used was the default Apple gcc 4.2.  This [uses
 clang as a
@@ -100,11 +100,11 @@ as I could, and no other significant processes running.
 
 I build 32 and 64 bit ATLAS binaries separately.  The resulting built ATLAS
 libraries are in [the repo archives
-directory](https://github.com/matthew-brett/numpy-atlas-binaries/tree/master/archives).
+directory](https://github.com/MacPython/numpy-atlas-binaries/tree/master/archives).
 The scripts I used to build them are here: [32
-bit](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/scripts/install_atlas_32_sse2.sh)
+bit](https://github.com/MacPython/numpy-atlas-binaries/blob/master/scripts/install_atlas_32_sse2.sh)
 ; [64
-bit](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/scripts/install_atlas_64_sse2.sh).
+bit](https://github.com/MacPython/numpy-atlas-binaries/blob/master/scripts/install_atlas_64_sse2.sh).
 
 These archives are linked against gfortran libs specific to this build of the
 compiler.
@@ -121,7 +121,7 @@ This is just a sketch.  The full build process is in the waf
 - for each architecture (i386, x86\_64)
     - make new ATLAS directory for arch in build directory; copy ATLAS include
       directory into new directory; make dynamic ATLAS libs using [this
-      script](https://github.com/matthew-brett/numpy-atlas-binaries/blob/master/bin/make_shared_atlas.py)
+      script](https://github.com/MacPython/numpy-atlas-binaries/blob/master/bin/make_shared_atlas.py)
       and copy into `lib` sub-directory in new ATLAS directory.
     - copy numpy / scipy sources to new directory
     - if building scipy, build numpy with recorded back-compatibility tag to
@@ -149,7 +149,7 @@ directory `~/wheelhouse` (given with the `--wheel-dir` option).
 
 I've set these builds to run on [travis-ci](http://travis-ci.org) - see the
 [travis builds
-page](https://travis-ci.org/matthew-brett/numpy-atlas-binaries).
+page](https://travis-ci.org/MacPython/numpy-atlas-binaries).
 
 The builds upload the binaries to a [Rackspace hosted
 container](http://a365fff413fe338398b6-1c8a9b3114517dc5fe17b7c3f8c63a43.r19.cf2.rackcdn.com/)
