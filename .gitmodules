@@ -10,6 +10,3 @@
 [submodule "terryfy"]
 	path = terryfy
 	url = git://github.com/MacPython/terryfy.git
-[submodule "sklearn"]
-	path = sklearn
-	url = git://github.com/scikit-learn/scikit-learn
