@@ -22,7 +22,8 @@ function install_gfortran {
 
 
 function build_wheels {
-    packages=$1
+    local packages=$1
+    check_env $packages
     local package_settings=""
     if [ -n "$NP_TAG" ]; then
         $package_settings="$package_settings --np-tag ${NP_TAG}"
