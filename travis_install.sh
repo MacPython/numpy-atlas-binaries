@@ -7,23 +7,31 @@ source terryfy/travis_tools.sh
 # GNU Fortran specifics
 GF_ARCHIVE=archives/gfortran-4.8.2-Mavericks.dmg
 GF_PKG_SDIR=gfortran-4.8.2-Mavericks/gfortran.pkg
+GF_BIN_PATH=/usr/local/gfortran/bin
 
 # Cache for wheels neede for building
 NIPY_WHEELHOUSE=https://nipy.bic.berkeley.edu/scipy_installers
 
 
 function install_gfortran {
-    GF_VOL=/Volumes/gfortran
-    hdiutil attach $GF_ARCHIVE -mountpoint $GF_VOL
+    local gf_vol=/Volumes/gfortran
+    check_var $GF_ARCHIVE
+    check_var $GF_PKG_SDIR
+    check_var $GF_BIN_PATH
+    hdiutil attach $GF_ARCHIVE -mountpoint $gf_vol
     require_success "Failed to mount compiler dmg"
-    sudo installer -pkg $GF_VOL/$GF_PKG_SDIR -target /
+    sudo installer -pkg $gf_vol/$GF_PKG_SDIR -target /
     require_success "Failed to install gfortran compiler"
+    export PATH=/usr/local/gfortran/bin:$PATH
+    # in case these are set to clang versions
+    export CC=$GF_BIN_PATH/gcc
+    export CXX=$GF_BIN_PATH/g++
 }
 
 
 function build_wheels {
     local packages=$1
-    check_env $packages
+    check_var $packages
     local package_settings=""
     if [ -n "$NP_TAG" ]; then
         $package_settings="$package_settings --np-tag ${NP_TAG}"
