@@ -32,18 +32,22 @@ function install_gfortran {
 function build_wheels {
     local packages=$1
     check_var $packages
-    local package_settings=""
+    check_var $PYTHON_EXE
+    declare package_settings
     if [ -n "$NP_TAG" ]; then
-        $package_settings="$package_settings --np-tag ${NP_TAG}"
+        package_settings=--np-tag=$NP_TAG
     fi
     if [ -n "$SP_TAG" ]; then
-        $package_settings="$package_settings --sp-tag ${SP_TAG}"
+        package_settings=--sp-tag=$SP_TAG
     fi
     # Continuous-stdout flag is to keep travis-ci from timing out the build
     # commands because they last longer than 10 minutes without stdout
-    $PYTHON_EXE ./waf distclean configure build --continuous-stdout \
-        --pip-install-opts="-f $NIPY_WHEELHOUSE" --packages="$packages" \
-        $package_settings
+    ( $PYTHON_EXE \
+        ./waf distclean configure build \
+        --continuous-stdout \
+        --packages="$packages" \
+        $package_settings \
+        --pip-install-opts="-f $NIPY_WHEELHOUSE" )
     require_success "Build failed I'm afraid"
     rename_wheels build/wheelhouse
 }
