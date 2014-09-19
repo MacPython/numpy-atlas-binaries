@@ -3,3 +3,4 @@
 .lock-waf*
 *.pyc
 build/
+downloads/
