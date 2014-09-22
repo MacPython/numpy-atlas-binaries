@@ -30,6 +30,8 @@ VENV_SDIR = 'venv'
 PY_SP_NP_DEPENDS = {2: '1.5.1', 3: '1.7.1'}
 # default git tags for numpy and scipy to build (overridden by options)
 DEFAULT_PKG2TAG = dict(numpy = 'v1.9.0', scipy = 'v0.14.0')
+# Cython version
+CYTHON_VER='0.20.2'
 
 # If you change any git commits in the package definitions, you may need to run
 # the ``waf refresh_submodules`` command
@@ -150,7 +152,7 @@ def build(ctx):
     delocate_name, dir_node = pkg.unpack_patch_build(ctx)
     # And Cython, tempita.
     ctx(
-        rule = v_pip_install + 'cython',
+        rule = v_pip_install + 'cython==' + CYTHON_VER,
         after = delocate_name,
         name = 'install-cython')
     ctx(
