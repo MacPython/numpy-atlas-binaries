@@ -62,4 +62,5 @@ get_python_environment macpython $VERSION installation_venv
 install_gfortran
 # Need virtualenv to make build virtualenv
 $PIP_CMD install virtualenv
+set -vx  # echo commands
 build_wheels $PACKAGES
